@@ -1,34 +1,34 @@
 package org.bacljan.product_monitoring.controller;
 
 import jakarta.annotation.Nonnull;
+import jakarta.validation.Valid;
+import org.bacljan.product_monitoring.DTO.ProductDto;
 import org.bacljan.product_monitoring.model.Product;
 import org.bacljan.product_monitoring.service.ProductService;
 import org.bacljan.product_monitoring.service.ShipmentService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
 
-@RequestMapping("/api")
+@RequestMapping("/api/products")
 @RestController
-public class ShipmentController {
+public class ProductController {
     private final ShipmentService shipmentService;
     private final ProductService productService;
-    public ShipmentController(ShipmentService service,ProductService productService) {
+    public ProductController(ShipmentService service,ProductService productService) {
         this.shipmentService = service;
         this.productService = productService;
     }
-    @GetMapping("/products")
+    @GetMapping
     public ResponseEntity<List<Product>> getProducts(){
-        return ResponseEntity.of(Optional.ofNullable(productService.getProducts()));
+        return ResponseEntity.ok(productService.getProducts());
     }
-    @PostMapping("/products")
-    public ResponseEntity<Product> registerProducts(@Nonnull){
-
+    @PostMapping
+    public ResponseEntity<List<Product>> registerProducts(@Valid @RequestBody List<ProductDto> productDtos){
+        List<Product> savedProducts =  productService.addProducts(productDtos);
+        return ResponseEntity.ok(savedProducts);
     }
 
 }
