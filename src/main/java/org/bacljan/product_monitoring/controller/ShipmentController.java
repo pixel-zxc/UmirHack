@@ -26,22 +26,22 @@ public class ShipmentController {
 
     @PostMapping("/shipment")
     public ResponseEntity<Shipment> addShipment(@RequestBody @Valid ShipmentDto dto) {
-        Shipment shipment = shipmentService.addShipment(dto);
+        Shipment shipment = shipmentService.add(dto);
         return ResponseEntity.ok(shipment);
     }
 
     @GetMapping("/stocks")
-    public ResponseEntity<Map<String, Integer>> getStocks() {
+    public ResponseEntity<Map<Long, Integer>> getStocks() {
         return ResponseEntity.ok(productService.getStocks());
     }
 
     @GetMapping("/stocks/batches")
     public ResponseEntity<List<Product>> getAllBatches() {
-        return ResponseEntity.ok(productService.getBatchesSortedByExpiry());
+        return ResponseEntity.ok(productService.getAllBatches());
     }
 
-    @GetMapping("/stocks/batches/{title}")
-    public ResponseEntity<List<Product>> getBatchesByTitle(@PathVariable String title) {
-        return ResponseEntity.ok(productService.getBatchesByTitle(title));
+    @GetMapping("/stocks/batches/{id}")
+    public ResponseEntity<List<Product>> getBatchesByTitle(@PathVariable long id) {
+        return ResponseEntity.ok(productService.getBatchesByProductId(id));
     }
 }

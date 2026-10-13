@@ -13,10 +13,9 @@ import java.util.List;
 
 
 @Value
-@AllArgsConstructor
-public class ShipmentDto {
 
-    @NotBlank(message ="Номер не может быть пустым")
+public class ShipmentDto {
+    @NotBlank
     String shipmentNumber;
     @NotNull
     @PastOrPresent

@@ -18,15 +18,14 @@ public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
-    @Column(name = "title", nullable = false)
-    private String title;
     @Column(name = "quantity", nullable = false)
     private int quantity;
     @Column(name = "expiration_date", nullable = false)
     private Instant expirationDate;
-    @Column(name = "units")
-    private String unit;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shipment_id")
     private Shipment shipment;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id")
+    private ProductInfo productInfo;
 }

@@ -13,9 +13,9 @@ import java.util.List;
 @Entity
 @Table(name = "shipments")
 @Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Setter
 public class Shipment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

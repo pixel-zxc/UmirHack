@@ -8,5 +8,6 @@ import java.util.List;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
-    List<Product> findByTitleIgnoreCase(String title);
+    List<Product> findByProductInfoIdAndQuantityGreaterThanOrderByExpirationDateAsc(Long productInfoId, int quantity);
+    List<Product> findByQuantityGreaterThanOrderByExpirationDateAsc(int quantity);
 }
