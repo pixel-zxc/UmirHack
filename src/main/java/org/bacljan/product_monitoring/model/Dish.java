@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -15,12 +16,23 @@ public class Dish {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
+
     @Column(name = "title")
     private String title;
-    @OneToMany(mappedBy = "dish", fetch = FetchType.LAZY)
-    private List<DishIngredient> dishIngredients;
-    public void add(DishIngredient ingredient){
+
+    @OneToMany(mappedBy = "dish", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DishIngredient> dishIngredients = new ArrayList<>();
+
+    @OneToMany(mappedBy = "dish")
+    private List<OrderItem> items = new ArrayList<>();
+
+    public void addIngredient(DishIngredient ingredient) {
         dishIngredients.add(ingredient);
         ingredient.setDish(this);
+    }
+
+    public void addItem(OrderItem item) {
+        items.add(item);
+        item.setDish(this);
     }
 }

@@ -1,7 +1,10 @@
 package org.bacljan.product_monitoring.controller;
 
 import jakarta.validation.Valid;
+import org.bacljan.product_monitoring.DTO.AnalyticsDto;
+import org.bacljan.product_monitoring.DTO.HotOfferDto;
 import org.bacljan.product_monitoring.DTO.ShipmentDto;
+import org.bacljan.product_monitoring.model.Dish;
 import org.bacljan.product_monitoring.model.Product;
 import org.bacljan.product_monitoring.model.Shipment;
 import org.bacljan.product_monitoring.service.ProductService;
@@ -43,5 +46,31 @@ public class ShipmentController {
     @GetMapping("/stocks/batches/{id}")
     public ResponseEntity<List<Product>> getBatchesByTitle(@PathVariable long id) {
         return ResponseEntity.ok(productService.getBatchesByProductId(id));
+    }
+
+    @GetMapping("/stoplist")
+    public ResponseEntity<List<Dish>> getStopList() {
+        return ResponseEntity.ok(productService.getStopList());
+    }
+
+    @GetMapping("/stocks/expiring")
+    public ResponseEntity<List<Product>> getExpiring(@RequestParam(defaultValue = "3") int days) {
+        return ResponseEntity.ok(productService.getExpiringBatches(days));
+    }
+
+    @PostMapping("/stocks/write-off-expired")
+    public ResponseEntity<Map<String, Integer>> writeOffExpired() {
+        int written = productService.writeOffExpired();
+        return ResponseEntity.ok(Map.of("writtenOff", written));
+    }
+
+    @GetMapping("/hot-offers")
+    public ResponseEntity<List<HotOfferDto>> getHotOffers() {
+        return ResponseEntity.ok(productService.getHotOffers());
+    }
+
+    @GetMapping("/analytics")
+    public ResponseEntity<AnalyticsDto> getAnalytics() {
+        return ResponseEntity.ok(productService.getAnalytics());
     }
 }

@@ -1,5 +1,6 @@
 package org.bacljan.product_monitoring.service;
 
+import lombok.AllArgsConstructor;
 import org.bacljan.product_monitoring.DTO.ProductInfoDto;
 import org.bacljan.product_monitoring.model.ProductInfo;
 import org.bacljan.product_monitoring.repository.ProductInfoRepository;
@@ -9,13 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
+@AllArgsConstructor
 public class ProductInfoService {
-
     private final ProductInfoRepository repository;
-
-    public ProductInfoService(ProductInfoRepository repository) {
-        this.repository = repository;
-    }
 
     public List<ProductInfo> getAll() {
         return repository.findAll();

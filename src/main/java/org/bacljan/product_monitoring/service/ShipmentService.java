@@ -1,5 +1,6 @@
 package org.bacljan.product_monitoring.service;
 
+import lombok.AllArgsConstructor;
 import org.bacljan.product_monitoring.DTO.ProductDto;
 import org.bacljan.product_monitoring.DTO.ShipmentDto;
 import org.bacljan.product_monitoring.exception.ShipmentAlreadyExistsException;
@@ -11,16 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@AllArgsConstructor
 public class ShipmentService {
-
     private final ShipmentRepository shipmentRepository;
     private final ProductInfoService productInfoService;
-
-    public ShipmentService(ShipmentRepository shipmentRepository,
-                           ProductInfoService productInfoService) {
-        this.shipmentRepository = shipmentRepository;
-        this.productInfoService = productInfoService;
-    }
 
     @Transactional
     public Shipment add(ShipmentDto dto) {

@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Table(name = "products_info")
@@ -23,10 +24,10 @@ public class ProductInfo {
     @Column(name = "title", nullable = false)
     private String title;
     @OneToMany(mappedBy = "productInfo")
-    private List<DishIngredient> ingredients;
-    public void add(DishIngredient ingredient){
+    private List<DishIngredient> ingredients = new ArrayList<>();
+
+    public void add(DishIngredient ingredient) {
         ingredients.add(ingredient);
         ingredient.setProductInfo(this);
     }
-
 }

@@ -16,7 +16,7 @@ public class DishIngredient {
     @JoinColumn(name = "dish_id")
     private Dish dish;
     @ManyToOne
-    @JoinColumn(name = "product_info_id")
+    @JoinColumn(name = "product_info_id", nullable = false)
     private ProductInfo productInfo;
     private int quantity;
 }
