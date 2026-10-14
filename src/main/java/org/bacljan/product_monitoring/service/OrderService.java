@@ -39,31 +39,25 @@ public class OrderService {
         }
 
         Map<Long, List<Product>> batchesByProduct = new HashMap<>();
-        Instant now = Instant.now();
-
         for (Map.Entry<Long, Integer> entry : required.entrySet()) {
             Long productInfoId = entry.getKey();
             int need = entry.getValue();
-
             List<Product> batches = productRepository
                     .findByProductInfoIdAndQuantityGreaterThanOrderByExpirationDateAsc(productInfoId, 0);
 
+            Instant now = Instant.now();
             List<Product> validBatches = new ArrayList<>();
             int available = 0;
-
             for (Product batch : batches) {
-                if (!batch.getExpirationDate().isAfter(now)) {
-                    continue;
+                if (batch.getExpirationDate().isBefore(now) || batch.getExpirationDate().equals(now)) {
+                    throw new ProductIsExirationException("product is expired");
                 }
                 validBatches.add(batch);
                 available += batch.getQuantity();
             }
 
             if (available < need) {
-                throw new IllegalProductQuantityException(
-                        "Not enough product id=" + productInfoId +
-                                ", need=" + need + ", available=" + available
-                );
+                throw new IllegalProductQuantityException("not enough products");
             }
             batchesByProduct.put(productInfoId, validBatches);
         }
@@ -72,7 +66,6 @@ public class OrderService {
             Long productInfoId = entry.getKey();
             int need = entry.getValue();
             List<Product> batches = batchesByProduct.get(productInfoId);
-
             for (Product batch : batches) {
                 if (need <= 0) break;
                 int take = Math.min(batch.getQuantity(), need);

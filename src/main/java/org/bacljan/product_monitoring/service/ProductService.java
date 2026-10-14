@@ -3,6 +3,7 @@ package org.bacljan.product_monitoring.service;
 import lombok.AllArgsConstructor;
 import org.bacljan.product_monitoring.DTO.AnalyticsDto;
 import org.bacljan.product_monitoring.DTO.HotOfferDto;
+import org.bacljan.product_monitoring.DTO.StockItemDto;
 import org.bacljan.product_monitoring.model.*;
 import org.bacljan.product_monitoring.repository.DishRepository;
 import org.bacljan.product_monitoring.repository.ProductRepository;
@@ -29,6 +30,21 @@ public class ProductService {
                         p -> p.getProductInfo().getId(),
                         Collectors.summingInt(Product::getQuantity)
                 ));
+    }
+
+    public List<StockItemDto> getStockItems() {
+        Map<Long, Integer> quantities = new HashMap<>();
+        Map<Long, String> titles = new HashMap<>();
+        for (Product p : repository.findByQuantityGreaterThanOrderByExpirationDateAsc(0)) {
+            Long id = p.getProductInfo().getId();
+            quantities.merge(id, p.getQuantity(), Integer::sum);
+            titles.putIfAbsent(id, p.getProductInfo().getTitle());
+        }
+        List<StockItemDto> result = new ArrayList<>();
+        for (Map.Entry<Long, Integer> e : quantities.entrySet()) {
+            result.add(new StockItemDto(e.getKey(), titles.get(e.getKey()), e.getValue()));
+        }
+        return result;
     }
 
     public List<Product> getAllBatches() {
