@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Флагман — Мониторинг остатков</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: {
+              50: '#eef6ff', 100: '#d9ebff', 200: '#bcd8ff',
+              500: '#2b7fff', 600: '#0b5fff', 700: '#0047e1',
+              800: '#0039b5', 900: '#0a2a6e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; background: #f4f7fb; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+      padding: 0.55rem 1rem; border-radius: 0.75rem; font-weight: 500; font-size: 0.875rem;
+      transition: all 0.15s ease; cursor: pointer; border: none;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: linear-gradient(135deg, #2b7fff, #0b5fff); color: white; box-shadow: 0 4px 14px -3px rgba(11,95,255,0.45); }
+    .btn-primary:hover { filter: brightness(1.05); }
+    .btn-ghost { background: #f1f5f9; color: #334155; }
+    .btn-ghost:hover { background: #e2e8f0; }
+    .btn-danger { background: #fef2f2; color: #dc2626; }
+    .btn-danger:hover { background: #fee2e2; }
+    .input {
+      width: 100%; border: 1px solid #e2e8f0; border-radius: 0.75rem;
+      padding: 0.6rem 0.85rem; font-size: 0.875rem; background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s; outline: none;
+    }
+    .input:focus { border-color: #2b7fff; box-shadow: 0 0 0 3px rgba(43,127,255,0.15); }
+    .nav-item {
+      display: flex; align-items: center; gap: 0.65rem;
+      padding: 0.65rem 0.9rem; border-radius: 0.75rem;
+      font-size: 0.875rem; font-weight: 500; color: #64748b;
+      cursor: pointer; transition: all 0.15s; border: none; background: transparent; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: #f1f5f9; color: #0f172a; }
+    .nav-item.active { background: linear-gradient(135deg, #eef6ff, #d9ebff); color: #0b5fff; }
+    .badge {
+      display: inline-flex; align-items: center; padding: 0.15rem 0.55rem;
+      border-radius: 999px; font-size: 0.7rem; font-weight: 600;
+    }
+    .stat-card {
+      background: white; border-radius: 1.1rem; padding: 1.15rem 1.25rem;
+      box-shadow: 0 1px 3px rgba(15,23,42,0.04), 0 8px 24px -8px rgba(15,23,42,0.08);
+      border: 1px solid rgba(226,232,240,0.8); position: relative; overflow: hidden;
+    }
+    .panel {
+      background: white; border-radius: 1.25rem; border: 1px solid rgba(226,232,240,0.9);
+      box-shadow: 0 1px 3px rgba(15,23,42,0.04), 0 8px 24px -8px rgba(15,23,42,0.08);
+    }
+    table th { font-weight: 500; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .toast-enter { animation: slideIn 0.25s ease; }
+    @keyframes slideIn { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800">
+  <div class="flex min-h-screen">
+    <aside class="w-60 shrink-0 border-r border-slate-200/80 bg-white/90 backdrop-blur sticky top-0 h-screen flex flex-col p-4 hidden md:flex">
+      <div class="flex items-center gap-3 px-2 mb-8 mt-1">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-brand-500/30">Ф</div>
+        <div>
+          <div class="font-bold text-[15px] leading-tight">Флагман</div>
+          <div class="text-[11px] text-slate-400">Склад · Сроки · Стоп</div>
+        </div>
+      </div>
+      <nav class="flex flex-col gap-0.5 flex-1" id="tabs">
+        <button class="nav-item active" data-tab="stocks"><span>📦</span> Склад</button>
+        <button class="nav-item" data-tab="shipment"><span>🚚</span> Поставка</button>
+        <button class="nav-item" data-tab="products"><span>🏷️</span> Продукты</button>
+        <button class="nav-item" data-tab="dishes"><span>🍽️</span> Блюда</button>
+        <button class="nav-item" data-tab="orders"><span>🧾</span> Заказ</button>
+        <button class="nav-item" data-tab="stoplist"><span>🚫</span> Стоп-лист</button>
+        <button class="nav-item" data-tab="hot"><span>🔥</span> Горячие</button>
+        <button class="nav-item" data-tab="analytics"><span>📊</span> Аналитика</button>
+      </nav>
+      <div class="mt-auto pt-4 border-t border-slate-100">
+        <label class="text-[10px] uppercase tracking-wider text-slate-400 px-2">API</label>
+        <input id="apiBase" class="input mt-1 text-xs" value="http://localhost:8080" />
+        <button onclick="loadAll()" class="btn btn-primary w-full mt-2 text-xs">Обновить данные</button>
+      </div>
+    </aside>
+
+    <main class="flex-1 min-w-0">
+      <header class="md:hidden sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-brand-600 text-white flex items-center justify-center font-bold text-sm">Ф</div>
+          <span class="font-semibold">Флагман</span>
+        </div>
+        <button onclick="loadAll()" class="btn btn-ghost text-xs">↻</button>
+      </header>
+
+      <div class="p-4 md:p-8 max-w-6xl mx-auto">
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900" id="pageTitle">Склад</h1>
+          <p class="text-sm text-slate-500 mt-0.5" id="pageSub">Партии и сроки годности</p>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6" id="stats"></div>
+        <div class="flex gap-1.5 overflow-x-auto pb-3 mb-4 md:hidden" id="mobileTabs"></div>
+        <div id="content"></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast" class="fixed bottom-6 right-6 z-50 hidden"></div>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+    const TITLES = {
+      stocks: ['Склад', 'Партии и сроки годности'],
+      shipment: ['Поставка', 'Приём новых партий'],
+      products: ['Продукты', 'Справочник ингредиентов'],
+      dishes: ['Блюда', 'Рецепты и состав'],
+      orders: ['Заказ', 'Оформление со списанием FEFO'],
+      stoplist: ['Стоп-лист', 'Недоступные блюда'],
+      hot: ['Горячие предложения', 'Что продавать в первую очередь'],
+      analytics: ['Аналитика', 'Списания и дефицит']
+    };
+
+    function api() { return ($('#apiBase').value || 'http://localhost:8080').replace(/\/$/, ''); }
+
+    async function req(path, opts = {}) {
+      const res = await fetch(api() + path, {
+        headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+        ...opts
+      });
+      if (!res.ok) {
+        let msg = res.statusText;
+        try { const j = await res.json(); msg = j.message || j.error || JSON.stringify(j); } catch {}
+        throw new Error(msg);
+      }
+      if (res.status === 204) return null;
+      const text = await res.text();
+      if (!text) return null;
+      try { return JSON.parse(text); } catch { throw new Error('Некорректный JSON от сервера'); }
+    }
+
+    function toast(msg, ok = true) {
+      const el = $('#toast');
+      el.className = `toast-enter fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm text-white max-w-sm ${ok ? 'bg-emerald-600' : 'bg-red-600'}`;
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 3200);
+    }
+
+    function daysLeft(iso) {
+      return Math.ceil((new Date(iso) - Date.now()) / 86400000);
+    }
+
+    function expiryBadge(iso) {
+      const d = daysLeft(iso);
+      if (d < 0) return `<span class="badge bg-red-100 text-red-700">просрочен</span>`;
+      if (d <= 2) return `<span class="badge bg-orange-100 text-orange-700">${d} дн.</span>`;
+      if (d <= 5) return `<span class="badge bg-amber-100 text-amber-800">${d} дн.</span>`;
+      return `<span class="badge bg-emerald-100 text-emerald-700">${d} дн.</span>`;
+    }
+
+    let products = [], dishes = [], stocks = {}, batches = [], stopList = [], hotOffers = [], analytics = null;
+
+    function normalizeStocks(raw) {
+      if (!raw) return {};
+      if (Array.isArray(raw)) {
+        const m = {};
+        raw.forEach(x => {
+          const id = x.productInfoId ?? x.productId ?? x.id;
+          const q = x.quantity ?? x.stock ?? x.total ?? 0;
+          if (id != null) m[String(id)] = (m[String(id)] || 0) + Number(q);
+        });
+        return m;
+      }
+      if (typeof raw === 'object') {
+        const m = {};
+        for (const [k, v] of Object.entries(raw)) {
+          const num = typeof v === 'number' ? v : Number(v?.quantity ?? v?.stock ?? 0);
+          m[String(k)] = Number.isFinite(num) ? num : 0;
+        }
+        return m;
+      }
+      return {};
+    }
+
+    function batchProductId(b) {
+      return b.productInfo?.id ?? b.productInfoId ?? b.product_id ?? b.productId ?? null;
+    }
+
+    function batchProductTitle(b) {
+      if (b.productInfo?.title) return b.productInfo.title;
+      const id = batchProductId(b);
+      if (id != null) {
+        const p = products.find(x => String(x.id) === String(id));
+        return p?.title || '#' + id;
+      }
+      return '—';
+    }
+
+    function productName(id) {
+      if (id == null) return '—';
+      const p = products.find(x => String(x.id) === String(id));
+      return p ? p.title : '#' + id;
+    }
+
+    async function loadAll() {
+      try {
+        const raw = await Promise.all([
+          req('/api/products').catch(() => []),
+          req('/api/dishes').catch(() => []),
+          req('/api/stocks').catch(() => ({})),
+          req('/api/stocks/batches').catch(() => []),
+          req('/api/stoplist').catch(() => []),
+          req('/api/hot-offers').catch(() => []),
+          req('/api/analytics').catch(() => null),
+        ]);
+        products = Array.isArray(raw[0]) ? raw[0] : [];
+        dishes = Array.isArray(raw[1]) ? raw[1] : [];
+        stocks = normalizeStocks(raw[2]);
+        batches = Array.isArray(raw[3]) ? raw[3] : [];
+        stopList = Array.isArray(raw[4]) ? raw[4] : [];
+        hotOffers = Array.isArray(raw[5]) ? raw[5] : [];
+        analytics = raw[6];
+        renderStats();
+        const active = document.querySelector('.nav-item.active')?.dataset.tab || 'stocks';
+        renderTab(active);
+        toast('Данные обновлены');
+      } catch (e) {
+        toast('Ошибка: ' + e.message, false);
+      }
+    }
+
+    function renderStats() {
+      let totalStock = Object.values(stocks).reduce((a, b) => a + (Number(b) || 0), 0);
+      if (!totalStock && batches.length) {
+        totalStock = batches.reduce((a, b) => a + (Number(b.quantity) || 0), 0);
+      }
+      const expiring = batches.filter(b => { const d = daysLeft(b.expirationDate); return d <= 3 && d >= 0; }).length;
+      const items = [
+        { label: 'Продукты', value: products.length },
+        { label: 'Остаток (ед.)', value: totalStock },
+        { label: 'Стоп-лист', value: stopList.length, alert: stopList.length > 0 },
+        { label: 'Скоро испортятся', value: expiring, alert: expiring > 0 },
+      ];
+      $('#stats').innerHTML = items.map(it => `
+        <div class="stat-card">
+          <div class="text-xs font-medium text-slate-400 mb-1">${it.label}</div>
+          <div class="text-2xl font-bold tracking-tight ${it.alert ? 'text-red-600' : 'text-slate-900'}">${it.value}</div>
+        </div>`).join('');
+    }
+
+    function bindNav(root) {
+      root.querySelectorAll('[data-tab]').forEach(btn => {
+        btn.onclick = () => {
+          $$('.nav-item').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('[data-tab="' + btn.dataset.tab + '"]').forEach(b => b.classList.add('active'));
+          renderTab(btn.dataset.tab);
+        };
+      });
+    }
+    bindNav($('#tabs'));
+
+    $('#mobileTabs').innerHTML = [...$('#tabs').querySelectorAll('.nav-item')].map(b =>
+      '<button class="nav-item whitespace-nowrap !w-auto px-3 ' + (b.classList.contains('active') ? 'active' : '') + '" data-tab="' + b.dataset.tab + '">' + b.textContent.trim() + '</button>'
+    ).join('');
+    bindNav($('#mobileTabs'));
+
+    function renderTab(name) {
+      const t = TITLES[name] || ['', ''];
+      $('#pageTitle').textContent = t[0];
+      $('#pageSub').textContent = t[1];
+      const map = { stocks: renderStocks, shipment: renderShipment, products: renderProducts,
+        dishes: renderDishes, orders: renderOrders, stoplist: renderStopList, hot: renderHot, analytics: renderAnalytics };
+      (map[name] || renderStocks)($('#content'));
+    }
+
+    function renderStocks(c) {
+      const rows = batches.map(b => {
+        const title = batchProductTitle(b);
+        const unit = b.productInfo?.unit || products.find(p => String(p.id) === String(batchProductId(b)))?.unit || '';
+        return '<tr class="hover:bg-slate-50/80 transition">' +
+          '<td class="py-3 px-4 font-medium text-slate-800">' + title + '</td>' +
+          '<td class="py-3 px-4 tabular-nums">' + b.quantity + ' <span class="text-slate-400 text-xs">' + unit + '</span></td>' +
+          '<td class="py-3 px-4 text-slate-600">' + new Date(b.expirationDate).toLocaleDateString('ru-RU') + '</td>' +
+          '<td class="py-3 px-4">' + expiryBadge(b.expirationDate) + '</td>' +
+          '<td class="py-3 px-4 text-slate-300 text-xs">#' + b.id + '</td></tr>';
+      }).join('') || '<tr><td colspan="5" class="py-12 text-center text-slate-400">Нет партий на складе</td></tr>';
+
+      c.innerHTML =
+        '<div class="panel overflow-hidden">' +
+          '<div class="px-5 py-4 border-b border-slate-100 flex flex-wrap gap-2 justify-between items-center">' +
+            '<div><h2 class="font-semibold text-slate-900">Партии (FEFO)</h2>' +
+            '<p class="text-xs text-slate-400 mt-0.5">Сначала списываются партии с ранним сроком</p></div>' +
+            '<button onclick="writeOff()" class="btn btn-danger text-xs">Списать просрочку</button></div>' +
+          '<div class="overflow-x-auto"><table class="w-full text-sm">' +
+            '<thead class="bg-slate-50/80"><tr>' +
+              '<th class="py-3 px-4 text-left">Продукт</th><th class="py-3 px-4 text-left">Кол-во</th>' +
+              '<th class="py-3 px-4 text-left">Срок</th><th class="py-3 px-4 text-left">Осталось</th>' +
+              '<th class="py-3 px-4 text-left">ID</th></tr></thead>' +
+            '<tbody class="divide-y divide-slate-50">' + rows + '</tbody></table></div></div>';
+    }
+
+    function renderShipment(c) {
+      const opts = products.map(p => '<option value="' + p.id + '">' + p.title + ' (' + (p.unit || 'шт') + ')</option>').join('');
+      window._shipOpts = opts;
+      c.innerHTML =
+        '<div class="panel p-6 max-w-lg">' +
+          '<h2 class="font-semibold text-lg mb-1">Новая поставка</h2>' +
+          '<p class="text-sm text-slate-400 mb-5">Укажите номер, дату и позиции со сроками</p>' +
+          '<div class="space-y-3">' +
+            '<div><label class="text-xs font-medium text-slate-500 mb-1 block">Номер</label>' +
+            '<input id="shipNum" class="input" placeholder="SUP-2026-001" /></div>' +
+            '<div><label class="text-xs font-medium text-slate-500 mb-1 block">Дата поступления</label>' +
+            '<input id="shipDate" type="datetime-local" class="input" /></div>' +
+            '<div><label class="text-xs font-medium text-slate-500 mb-1.5 block">Позиции</label>' +
+            '<div id="shipItems" class="space-y-2"></div></div>' +
+            '<button type="button" onclick="addShipItem()" class="btn btn-ghost text-xs">+ Добавить позицию</button>' +
+            '<button type="button" onclick="submitShipment()" class="btn btn-primary w-full mt-2">Принять поставку</button>' +
+          '</div></div>';
+      const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      $('#shipDate').value = now.toISOString().slice(0, 16);
+      addShipItem();
+    }
+
+    function addShipItem() {
+      const div = document.createElement('div');
+      div.className = 'grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100';
+      div.innerHTML =
+        '<select class="input ship-pid text-sm">' + (window._shipOpts || '<option>—</option>') + '</select>' +
+        '<input type="number" min="1" value="10" class="input ship-qty text-sm" placeholder="Кол-во" />' +
+        '<input type="date" class="input ship-exp text-sm" />';
+      const d = new Date(); d.setDate(d.getDate() + 7);
+      div.querySelector('.ship-exp').value = d.toISOString().slice(0, 10);
+      $('#shipItems')?.appendChild(div);
+    }
+
+    async function submitShipment() {
+      try {
+        const items = [...document.querySelectorAll('#shipItems > div')].map(row => ({
+          productId: Number(row.querySelector('.ship-pid').value),
+          quantity: Number(row.querySelector('.ship-qty').value),
+          expirationDate: new Date(row.querySelector('.ship-exp').value + 'T23:59:59').toISOString()
+        }));
+        await req('/api/shipment', {
+          method: 'POST',
+          body: JSON.stringify({
+            shipmentNumber: $('#shipNum').value || ('SUP-' + Date.now()),
+            dateShipment: new Date($('#shipDate').value).toISOString(),
+            products: items
+          })
+        });
+        toast('Поставка принята');
+        loadAll();
+      } catch (e) { toast(e.message, false); }
+    }
+
+    function renderProducts(c) {
+      const list = products.map(p =>
+        '<div class="flex items-center justify-between py-3 px-1 border-b border-slate-50 last:border-0">' +
+          '<div class="flex items-center gap-3">' +
+            '<div class="w-9 h-9 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-sm font-semibold">' + (p.title || '?')[0] + '</div>' +
+            '<div><div class="font-medium text-sm">' + p.title + '</div>' +
+            '<div class="text-[11px] text-slate-400">id ' + p.id + ' · ' + (p.unit || '—') + '</div></div></div>' +
+          '<div class="text-sm font-semibold tabular-nums text-slate-700">' + (stocks[p.id] ?? stocks[String(p.id)] ?? 0) + '</div></div>'
+      ).join('') || '<p class="text-slate-400 text-sm py-6 text-center">Справочник пуст</p>';
+
+      c.innerHTML =
+        '<div class="grid md:grid-cols-2 gap-4">' +
+          '<div class="panel p-6"><h2 class="font-semibold mb-4">Добавить продукт</h2>' +
+            '<div class="space-y-3">' +
+              '<input id="pTitle" class="input" placeholder="Название (например, Курица филе)" />' +
+              '<input id="pUnit" class="input" placeholder="Ед. изм." value="кг" />' +
+              '<button onclick="addProduct()" class="btn btn-primary w-full">Создать</button></div></div>' +
+          '<div class="panel p-5"><div class="flex justify-between items-center mb-2">' +
+            '<h2 class="font-semibold">Справочник</h2>' +
+            '<span class="badge bg-slate-100 text-slate-500">' + products.length + '</span></div>' + list + '</div></div>';
+    }
+
+    async function addProduct() {
+      try {
+        const title = $('#pTitle').value?.trim();
+        if (!title) return toast('Укажите название', false);
+        await req('/api/products', {
+          method: 'POST',
+          body: JSON.stringify([{ title, unit: $('#pUnit').value || 'шт' }])
+        });
+        toast('Продукт создан');
+        loadAll();
+      } catch (e) { toast(e.message, false); }
+    }
+
+    function renderDishes(c) {
+      const cards = dishes.map(d => {
+        const ings = (d.dishIngredients || []).map(i =>
+          (i.productInfo?.title || productName(i.productInfo?.id || i.idProduct)) + ' × ' + i.quantity
+        ).join(' · ') || 'нет рецепта';
+        const stopped = stopList.some(s => s.id === d.id);
+        return '<div class="panel p-4">' +
+          '<div class="flex justify-between items-start gap-2 mb-2">' +
+            '<h3 class="font-semibold text-slate-900">' + d.title + '</h3>' +
+            (stopped ? '<span class="badge bg-red-100 text-red-700">стоп</span>' : '<span class="badge bg-emerald-100 text-emerald-700">ок</span>') +
+          '</div><p class="text-xs text-slate-500 leading-relaxed">' + ings + '</p></div>';
+      }).join('') || '<p class="text-slate-400 text-sm col-span-full text-center py-8">Нет блюд</p>';
+
+      const opts = products.map(p => '<option value="' + p.id + '">' + p.title + '</option>').join('');
+      window._dishOpts = opts;
+      c.innerHTML =
+        '<div class="grid lg:grid-cols-5 gap-4">' +
+          '<div class="lg:col-span-2 panel p-6"><h2 class="font-semibold mb-4">Новое блюдо</h2>' +
+            '<input id="dTitle" class="input mb-3" placeholder="Название блюда" />' +
+            '<div id="dIngs" class="space-y-2 mb-3"></div>' +
+            '<button onclick="addIngRow()" class="btn btn-ghost text-xs mb-3">+ Ингредиент</button>' +
+            '<button onclick="submitDish()" class="btn btn-primary w-full">Создать</button></div>' +
+          '<div class="lg:col-span-3 grid sm:grid-cols-2 gap-3 content-start">' + cards + '</div></div>';
+      addIngRow();
+    }
+
+    function addIngRow() {
+      const div = document.createElement('div');
+      div.className = 'grid grid-cols-2 gap-2';
+      div.innerHTML =
+        '<select class="input ing-pid text-sm">' + (window._dishOpts || '') + '</select>' +
+        '<input type="number" min="1" value="1" class="input ing-qty text-sm" placeholder="Кол-во" />';
+      $('#dIngs')?.appendChild(div);
+    }
+
+    async function submitDish() {
+      try {
+        const title = $('#dTitle').value?.trim();
+        if (!title) return toast('Укажите название', false);
+        const ingredient = [...document.querySelectorAll('#dIngs > div')].map(row => ({
+          idProduct: Number(row.querySelector('.ing-pid').value),
+          quantity: Number(row.querySelector('.ing-qty').value)
+        }));
+        await req('/api/dishes', { method: 'POST', body: JSON.stringify({ title, ingredient }) });
+        toast('Блюдо создано');
+        loadAll();
+      } catch (e) { toast(e.message, false); }
+    }
+
+    function renderOrders(c) {
+      const opts = dishes.map(d => '<option value="' + d.id + '">' + d.title + '</option>').join('');
+      window._orderOpts = opts;
+      c.innerHTML =
+        '<div class="panel p-6 max-w-md">' +
+          '<h2 class="font-semibold text-lg mb-1">Новый заказ</h2>' +
+          '<p class="text-sm text-slate-400 mb-5">Ингредиенты спишутся по FEFO</p>' +
+          '<div id="orderItems" class="space-y-2 mb-3"></div>' +
+          '<button onclick="addOrderRow()" class="btn btn-ghost text-xs mb-3">+ Блюдо</button>' +
+          '<button onclick="submitOrder()" class="btn btn-primary w-full">Оформить заказ</button></div>';
+      addOrderRow();
+    }
+
+    function addOrderRow() {
+      const div = document.createElement('div');
+      div.className = 'grid grid-cols-2 gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100';
+      div.innerHTML =
+        '<select class="input ord-dish text-sm">' + (window._orderOpts || '') + '</select>' +
+        '<input type="number" min="1" value="1" class="input ord-qty text-sm" placeholder="Порций" />';
+      $('#orderItems')?.appendChild(div);
+    }
+
+    async function submitOrder() {
+      try {
+        const dtos = [...document.querySelectorAll('#orderItems > div')].map(row => ({
+          dishId: Number(row.querySelector('.ord-dish').value),
+          quantity: Number(row.querySelector('.ord-qty').value)
+        }));
+        const order = await req('/api/orders', { method: 'POST', body: JSON.stringify({ dtos }) });
+        toast('Заказ #' + order.id + ' · ' + order.status);
+        loadAll();
+      } catch (e) { toast(e.message, false); }
+    }
+
+    function renderStopList(c) {
+      if (!stopList.length) {
+        c.innerHTML =
+          '<div class="panel p-12 text-center">' +
+            '<div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl mx-auto mb-3">✓</div>' +
+            '<div class="font-semibold text-slate-900">Стоп-лист пуст</div>' +
+            '<p class="text-sm text-slate-400 mt-1">Все блюда можно готовить</p></div>';
+        return;
+      }
+      c.innerHTML =
+        '<div class="panel overflow-hidden">' +
+          '<div class="px-5 py-4 bg-gradient-to-r from-red-50 to-orange-50 border-b border-red-100">' +
+            '<h2 class="font-semibold text-red-800">Недоступно · ' + stopList.length + '</h2></div>' +
+          '<div class="divide-y divide-slate-50">' +
+            stopList.map(d =>
+              '<div class="px-5 py-3.5 flex justify-between items-center">' +
+                '<span class="font-medium">' + d.title + '</span>' +
+                '<span class="badge bg-red-100 text-red-700">нет ингредиентов</span></div>'
+            ).join('') + '</div></div>';
+    }
+
+    function renderHot(c) {
+      if (!hotOffers.length) {
+        c.innerHTML = '<div class="panel p-12 text-center text-slate-400 text-sm">Пока нет рекомендаций</div>';
+        return;
+      }
+      c.innerHTML =
+        '<div class="grid sm:grid-cols-2 gap-3">' +
+          hotOffers.map((o, i) =>
+            '<div class="panel p-4 relative overflow-hidden">' +
+              '<div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-400 to-red-500"></div>' +
+              '<div class="flex justify-between items-start gap-2 mb-2 pl-2">' +
+                '<div><span class="text-[10px] font-bold text-orange-500 uppercase tracking-wider">#' + (i + 1) + '</span>' +
+                '<h3 class="font-semibold text-slate-900">' + (o.dishTitle || o.title) + '</h3></div>' +
+                '<span class="badge bg-orange-50 text-orange-700">' + (o.priority ?? o.score ?? 0).toFixed(2) + '</span></div>' +
+              '<p class="text-xs text-slate-500 pl-2 leading-relaxed">' + (o.reason || '') + '</p></div>'
+          ).join('') + '</div>';
+    }
+
+    function renderAnalytics(c) {
+      const a = analytics || {};
+      const scarce = a.scarceProducts || a.scarce || [];
+      c.innerHTML =
+        '<div class="grid md:grid-cols-2 gap-4">' +
+          '<div class="panel p-6">' +
+            '<div class="text-xs font-medium text-slate-400 mb-1">Списано по просрочке</div>' +
+            '<div class="text-4xl font-bold tracking-tight text-slate-900">' + (a.totalWrittenOff ?? a.total ?? 0) + '</div>' +
+            '<p class="text-xs text-slate-400 mt-2">суммарное количество единиц</p></div>' +
+          '<div class="panel p-5"><h3 class="font-semibold mb-3">Дефицитные продукты</h3>' +
+            (scarce.length ? scarce.map(s =>
+              '<div class="flex justify-between items-center py-2.5 border-t border-slate-50 text-sm">' +
+                '<span class="font-medium">' + productName(s.productInfoId) + '</span>' +
+                '<span class="text-slate-400 text-xs">остаток ' + s.stock + ' · в ' + s.usedInDishes + ' блюдах</span></div>'
+            ).join('') : '<p class="text-slate-400 text-sm">Нет данных</p>') +
+          '</div></div>';
+    }
+
+    async function writeOff() {
+      try {
+        const r = await req('/api/stocks/write-off-expired', { method: 'POST' });
+        toast('Списано: ' + (r?.writtenOff ?? 0));
+        loadAll();
+      } catch (e) { toast(e.message, false); }
+    }
+
+    loadAll();
+  </script>
+</body>
+</html>
