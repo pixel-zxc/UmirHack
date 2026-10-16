@@ -68,6 +68,17 @@ public class ShipmentController {
         return ResponseEntity.ok(productService.getHotOffers());
     }
 
+    @PostMapping("/hot-offers")
+    public ResponseEntity<HotOfferDto> createHotOffer(@RequestBody @Valid HotOfferCreateDto dto) {
+        return ResponseEntity.ok(productService.createHotOffer(dto));
+    }
+
+    @DeleteMapping("/hot-offers/{id}")
+    public ResponseEntity<Void> deleteHotOffer(@PathVariable long id) {
+        productService.deleteHotOffer(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/analytics")
     public ResponseEntity<AnalyticsDto> getAnalytics() {
         return ResponseEntity.ok(productService.getAnalytics());

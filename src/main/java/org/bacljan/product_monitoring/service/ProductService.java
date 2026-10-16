@@ -2,11 +2,14 @@ package org.bacljan.product_monitoring.service;
 
 import lombok.AllArgsConstructor;
 import org.bacljan.product_monitoring.DTO.AnalyticsDto;
+import org.bacljan.product_monitoring.DTO.HotOfferCreateDto;
 import org.bacljan.product_monitoring.DTO.HotOfferDto;
 import org.bacljan.product_monitoring.DTO.StockItemDto;
 import org.bacljan.product_monitoring.DTO.StopListForecastDto;
+import org.bacljan.product_monitoring.exception.DishNotFoundException;
 import org.bacljan.product_monitoring.model.*;
 import org.bacljan.product_monitoring.repository.DishRepository;
+import org.bacljan.product_monitoring.repository.HotOfferRepository;
 import org.bacljan.product_monitoring.repository.ProductRepository;
 import org.bacljan.product_monitoring.repository.WriteOffRepository;
 import org.springframework.cache.annotation.Cacheable;
@@ -24,6 +27,7 @@ public class ProductService {
     private final ProductRepository repository;
     private final DishRepository dishRepository;
     private final WriteOffRepository writeOffRepository;
+    private final HotOfferRepository hotOfferRepository;
     private final StockEventService stockEventService;
     private final AppCacheService appCacheService;
 
@@ -141,8 +145,25 @@ public class ProductService {
 
         List<HotOfferDto> offers = new ArrayList<>();
 
+        // Ручные предложения от админа — всегда сверху по своему приоритету
+        for (HotOffer manual : hotOfferRepository.findActiveWithDish()) {
+            Dish dish = manual.getDish();
+            if (dish == null) continue;
+            offers.add(new HotOfferDto(
+                    manual.getId(),
+                    dish.getId(),
+                    dish.getTitle(),
+                    manual.getPriority(),
+                    manual.getReason() != null ? manual.getReason() : "Добавлено администратором",
+                    "MANUAL"
+            ));
+        }
+
+        Set<Long> manualDishIds = offers.stream().map(HotOfferDto::getDishId).collect(Collectors.toSet());
+
         for (Dish dish : dishRepository.findAll()) {
             if (stopIds.contains(dish.getId())) continue;
+            if (manualDishIds.contains(dish.getId())) continue; // ручное уже есть
             if (dish.getDishIngredients() == null || dish.getDishIngredients().isEmpty()) continue;
 
             double score = 0;
@@ -179,18 +200,57 @@ public class ProductService {
                             ? ingredient.getProductInfo().getUnit()
                             : "pcs";
                     bestReason = ingredient.getProductInfo().getTitle()
-                            + " expires in " + daysLeft + " day(s), stock=" + stock + " " + unit;
+                            + " истекает через " + daysLeft + " дн., остаток=" + stock + " " + unit;
                 }
             }
 
             if (score > 0 && bestReason != null) {
-                offers.add(new HotOfferDto(dish.getId(), dish.getTitle(),
-                        Math.round(score * 1000.0) / 1000.0, bestReason));
+                offers.add(new HotOfferDto(
+                        null,
+                        dish.getId(),
+                        dish.getTitle(),
+                        Math.round(score * 1000.0) / 1000.0,
+                        bestReason,
+                        "AUTO"
+                ));
             }
         }
 
         offers.sort((a, b) -> Double.compare(b.getPriority(), a.getPriority()));
         return offers;
+    }
+
+    @Transactional
+    public HotOfferDto createHotOffer(HotOfferCreateDto dto) {
+        Dish dish = dishRepository.findById(dto.getDishId())
+                .orElseThrow(() -> new DishNotFoundException("Блюдо не найдено: " + dto.getDishId()));
+        HotOffer offer = new HotOffer();
+        offer.setDish(dish);
+        offer.setPriority(dto.getPriority() > 0 ? dto.getPriority() : 1.0);
+        offer.setReason(dto.getReason() != null && !dto.getReason().isBlank()
+                ? dto.getReason().trim()
+                : "Добавлено администратором");
+        offer.setCreatedAt(Instant.now());
+        offer.setActive(true);
+        offer = hotOfferRepository.save(offer);
+        appCacheService.evictStockViews();
+        return new HotOfferDto(
+                offer.getId(),
+                dish.getId(),
+                dish.getTitle(),
+                offer.getPriority(),
+                offer.getReason(),
+                "MANUAL"
+        );
+    }
+
+    @Transactional
+    public void deleteHotOffer(long id) {
+        hotOfferRepository.findById(id).ifPresent(offer -> {
+            offer.setActive(false);
+            hotOfferRepository.save(offer);
+            appCacheService.evictStockViews();
+        });
     }
 
     @Transactional(readOnly = true)

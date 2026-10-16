@@ -301,13 +301,13 @@
     };
 
     const COPY = {
-      stocks: ["Склад", "Партии по сроку. Списание идёт с самой ранней, просрочка не уходит в блюдо."],
+      stocks: ["Склад", "Партии по сроку. Списание идёт с самой ранней. Просрочка списывается автоматически каждый час и при старте."],
       shipment: ["Поставка", "Номер, дата прихода и партии со сроком годности."],
       products: ["Продукты", "Справочник: название и единица измерения."],
       dishes: ["Блюда", "Рецепт на одну порцию. Ингредиенты ссылаются на справочник."],
       orders: ["Заказы", "Кухня закрывает готовку. Склад может создать заказ — FEFO спишет партии."],
       stop: ["Стоп-лист", "Блюда, на которые не хватает хотя бы одного ингредиента."],
-      hot: ["Горячие", "Что выгоднее продать, пока срок ещё не вышел."],
+      hot: ["Горячие", "Автопо предложения по срокам + ручные от админа."],
       analytics: ["Аналитика", "Списанная просрочка и продукты, которых мало относительно меню."]
     };
 
@@ -531,7 +531,7 @@
 
     function renderStocks(view) {
       const write = isAdmin()
-        ? '<button class="btn btn-danger" type="button" id="writeOffBtn">Списать просрочку</button>'
+        ? '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn btn-danger" type="button" id="writeOffBtn">Списать просрочку</button><span class="muted" style="font-size:12px">авто: при старте и каждый час</span></div>'
         : "";
       if (!state.batches.length) {
         view.innerHTML = empty(isAdmin() ? "Склад пуст" : "Партий нет", isAdmin() ? "Загрузите демо или примите поставку." : "На складе сейчас нет партий с остатком.");
@@ -667,14 +667,33 @@
     }
 
     function renderHot(view) {
-      if (!state.hot.length) {
-        view.innerHTML = empty("Пока тихо", "Нет блюд, которые стоит продвигать из-за срока.");
-        return;
-      }
-      view.innerHTML = '<div class="grid-cards">' + state.hot.map((o, i) =>
-        '<article class="panel offer"><div class="panel-h"><h3>' + esc(textOf(o.dishTitle) || "—") + '</h3><span class="prio">' + (Number(o.priority) || 0).toFixed(2) + "</span></div>" +
-        '<div class="when">#' + (i + 1) + '</div><p class="reason">' + esc(textOf(o.reason) || "") + "</p></article>"
-      ).join("") + "</div>";
+      const dishOpts = (state.dishes || []).map((d) =>
+        '<option value="' + esc(d.id) + '">' + esc(textOf(d.title) || "—") + "</option>"
+      ).join("");
+      const adminForm = isAdmin()
+        ? '<div class="panel" style="margin-bottom:16px;max-width:720px">' +
+          "<h3>Добавить горячее предложение</h3>" +
+          '<p class="reason">Ручные предложения видны всем и идут выше автоматических по приоритету.</p>' +
+          '<label for="hotDish">Блюдо</label><select id="hotDish" class="input">' + dishOpts + "</select>" +
+          '<label for="hotPrio">Приоритет</label><input id="hotPrio" class="input" type="number" step="0.1" min="0.1" value="5" />' +
+          '<label for="hotReason">Причина / комментарий</label><input id="hotReason" class="input" placeholder="Например: акция выходного дня" />' +
+          '<button class="btn btn-primary" type="button" id="saveHot" style="margin-top:12px">Добавить</button></div>'
+        : "";
+      const cards = state.hot.length
+        ? '<div class="grid-cards">' + state.hot.map((o, i) => {
+            const isManual = o.source === "MANUAL" || (o.id != null);
+            const badge = isManual
+              ? '<span class="badge b-warn" style="margin-left:8px">ручное</span>'
+              : '<span class="badge" style="margin-left:8px;opacity:.7">авто</span>';
+            const del = isAdmin() && isManual && o.id != null
+              ? '<button class="btn btn-ghost" type="button" data-del-hot="' + esc(o.id) + '" style="margin-top:8px">Убрать</button>'
+              : "";
+            return '<article class="panel offer"><div class="panel-h"><h3>' + esc(textOf(o.dishTitle) || "—") + badge +
+              '</h3><span class="prio">' + (Number(o.priority) || 0).toFixed(2) + "</span></div>" +
+              '<div class="when">#' + (i + 1) + '</div><p class="reason">' + esc(textOf(o.reason) || "") + "</p>" + del + "</article>";
+          }).join("") + "</div>"
+        : empty("Пока тихо", "Нет блюд, которые стоит продвигать из-за срока. Админ может добавить вручную.");
+      view.innerHTML = adminForm + cards;
     }
 
     function renderAnalytics(view) {
@@ -729,6 +748,24 @@
       if (t.id === "writeOffBtn") safe(async () => {
         const r = await req("/api/stocks/write-off-expired", { method: "POST" });
         toast("Списано: " + (r && r.writtenOff != null ? r.writtenOff : 0), true);
+        await refresh(true);
+      });
+      if (t.id === "saveHot") safe(async () => {
+        const dishId = Number($("#hotDish").value);
+        const priority = Number($("#hotPrio").value) || 1;
+        const reason = ($("#hotReason").value || "").trim();
+        if (!dishId) throw new Error("Выберите блюдо");
+        await req("/api/hot-offers", {
+          method: "POST",
+          body: JSON.stringify({ dishId, priority, reason: reason || undefined })
+        });
+        toast("Горячее предложение добавлено", true);
+        await refresh(true);
+      });
+      const delHot = t.closest("[data-del-hot]");
+      if (delHot) safe(async () => {
+        await req("/api/hot-offers/" + delHot.dataset.delHot, { method: "DELETE" });
+        toast("Предложение убрано", true);
         await refresh(true);
       });
       if (t.id === "saveProduct") safe(async () => {

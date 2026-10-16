@@ -33,7 +33,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/demo/**", "/api/events").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/me").hasAnyRole("ADMIN", "KITCHEN", "WAITER")
                         .requestMatchers(HttpMethod.POST, "/api/products", "/api/dishes", "/api/shipment",
-                                "/api/stocks/write-off-expired").hasRole("ADMIN")
+                                "/api/stocks/write-off-expired", "/api/hot-offers").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/hot-offers/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/analytics").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/orders").hasAnyRole("ADMIN", "KITCHEN", "WAITER")
                         .requestMatchers(HttpMethod.PATCH, "/api/orders/*/complete").hasAnyRole("ADMIN", "KITCHEN")
