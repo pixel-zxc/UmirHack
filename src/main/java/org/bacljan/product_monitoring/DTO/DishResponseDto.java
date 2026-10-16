@@ -10,5 +10,6 @@ import java.util.List;
 public class DishResponseDto {
     long id;
     String title;
+    String imageUrl;
     List<DishIngredientResponseDto> ingredients;
 }

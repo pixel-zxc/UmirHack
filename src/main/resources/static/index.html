@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Флагман</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23241c16'/%3E%3Cpath d='M9 6h2v20H9z' fill='%23f3eadf'/%3E%3Cpath d='M11 7h13l-3.2 5 3.2 5H11z' fill='%23d06a3a'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" media="print" onload="this.media='all'" />
+  <style>
+    :root {
+      --bg: #14110e;
+      --bg-2: #1c1713;
+      --panel: #241c17;
+      --panel-2: #2d241c;
+      --line: #3f3228;
+      --ink: #f6eee6;
+      --muted: #c3b2a2;
+      --faint: #8d7b6c;
+      --terra: #d06a3a;
+      --terra-2: #e08955;
+      --olive: #9aaf72;
+      --olive-bg: #24301c;
+      --oxide: #e07a68;
+      --oxide-bg: #3a221c;
+      --sand: #e2c27a;
+      --sand-bg: #3a2e1a;
+      --font: "IBM Plex Sans", "Segoe UI", sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: var(--font);
+      color: var(--ink);
+      background:
+        radial-gradient(900px 420px at 0% -10%, rgba(208,106,58,.18), transparent 55%),
+        var(--bg);
+      line-height: 1.45;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    button:disabled { opacity: .55; cursor: default; }
+    h1, h2, h3, p { margin: 0; }
+    .hidden { display: none !important; }
+
+    .login {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+    }
+    .brand {
+      padding: 48px 56px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(208,106,58,.08), transparent 42%);
+    }
+    .mark {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: #2a211b; border: 1px solid var(--line);
+      display: grid; place-items: center;
+    }
+    .kicker {
+      margin-top: 28px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      font-size: 12px;
+      color: var(--terra-2);
+      font-weight: 600;
+    }
+    .brand h1 {
+      margin-top: 10px;
+      font-size: clamp(48px, 6vw, 76px);
+      line-height: .92;
+      letter-spacing: -0.04em;
+      font-weight: 600;
+    }
+    .rule { width: 72px; height: 3px; background: var(--terra); margin: 22px 0; }
+    .brand p { max-width: 420px; color: var(--muted); font-size: 17px; }
+    .brand-foot { color: var(--faint); font-size: 13px; font-family: var(--mono); }
+    .gate {
+      display: flex; align-items: center; justify-content: center;
+      padding: 32px 24px;
+    }
+    .card {
+      width: min(420px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 28px 24px 22px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.28);
+    }
+    .card h2 { font-size: 28px; letter-spacing: -.03em; }
+    .card .lead { color: var(--muted); margin: 6px 0 20px; font-size: 14px; }
+    label { display: block; font-size: 12px; color: var(--faint); margin: 12px 0 6px; letter-spacing: .04em; text-transform: uppercase; }
+    .input, select.input {
+      width: 100%; min-height: 46px;
+      background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+      padding: 10px 12px; outline: none;
+    }
+    .input:focus { border-color: var(--terra); box-shadow: 0 0 0 3px rgba(208,106,58,.2); }
+    .btn {
+      min-height: 46px; border-radius: 12px; border: 1px solid transparent;
+      padding: 0 16px; font-weight: 600; background: transparent;
+    }
+    .btn-primary { background: var(--terra); color: #fff8f3; width: 100%; margin-top: 18px; }
+    .btn-primary:hover { background: #dc7542; }
+    .btn-ghost { border-color: var(--line); background: var(--panel-2); }
+    .btn-ghost:hover { border-color: var(--terra); }
+    .btn-danger { background: var(--oxide-bg); color: #ffd7d0; border-color: #6d3a32; }
+    .btn-ok { background: var(--olive); color: #17210f; }
+    .chips { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .chip {
+      min-height: 40px; border-radius: 999px; border: 1px solid var(--line);
+      background: transparent; color: var(--muted); padding: 0 12px; font-size: 13px;
+    }
+    .chip:hover { color: var(--ink); border-color: var(--terra); }
+
+    .app { min-height: 100vh; display: grid; grid-template-columns: 232px minmax(0, 1fr); }
+    aside {
+      border-right: 1px solid var(--line);
+      background: rgba(20,17,14,.92);
+      padding: 18px 12px 16px;
+      display: flex; flex-direction: column; gap: 8px;
+      position: sticky; top: 0; height: 100vh;
+    }
+    .side-brand { display: flex; gap: 10px; align-items: center; padding: 6px 8px 12px; }
+    .side-brand strong { display: block; font-size: 16px; letter-spacing: -.02em; }
+    .side-brand span { color: var(--faint); font-size: 12px; }
+    nav { display: flex; flex-direction: column; gap: 4px; }
+    .nav-btn {
+      text-align: left; border: 0; background: transparent; color: var(--muted);
+      border-radius: 12px; min-height: 44px; padding: 0 12px; font-weight: 550;
+    }
+    .nav-btn.active { background: #3a271e; color: var(--ink); }
+    .nav-btn:hover { color: var(--ink); }
+    .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding: 8px; }
+    .who { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    .main { min-width: 0; padding: 22px 22px 40px; }
+    .top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-end; margin-bottom: 18px; }
+    .top h2 { font-size: clamp(26px, 3vw, 34px); letter-spacing: -.03em; }
+    .sub { color: var(--muted); margin-top: 4px; font-size: 14px; }
+    .live { display: inline-flex; align-items: center; gap: 8px; color: var(--faint); font-size: 12px; font-family: var(--mono); }
+    .dot { width: 8px; height: 8px; border-radius: 99px; background: var(--faint); }
+    .dot.on { background: var(--olive); box-shadow: 0 0 0 4px rgba(154,175,114,.15); }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .stat, .panel {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .stat { padding: 14px 16px; }
+    .stat b { display: block; margin-top: 4px; font-family: var(--mono); font-size: 26px; font-weight: 600; letter-spacing: -.03em; }
+    .stat span, .muted { color: var(--faint); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+    .stat.warn b { color: var(--sand); }
+    .panel { padding: 16px; }
+    .panel + .panel, .stack > * + * { margin-top: 12px; }
+    .panel-h { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 12px; }
+    .panel-h h3 { font-size: 16px; }
+    .grid-2 { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 12px; align-items: start; }
+    .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+    td, th { padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    tr:last-child td { border-bottom: 0; }
+    .table-wrap { overflow-x: auto; }
+    .mono { font-family: var(--mono); }
+    .badge { display: inline-flex; align-items: center; min-height: 24px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .b-ok { background: var(--olive-bg); color: var(--olive); }
+    .b-bad { background: var(--oxide-bg); color: var(--oxide); }
+    .b-warn { background: var(--sand-bg); color: var(--sand); }
+    .b-terra { background: #3a271e; color: var(--terra-2); }
+    .row-hot td:first-child { box-shadow: inset 3px 0 0 var(--terra); }
+    .order {
+      display: grid; grid-template-columns: 92px minmax(0, 1fr) auto;
+      gap: 12px; align-items: center;
+      padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel-2);
+    }
+    .order + .order { margin-top: 10px; }
+    .order .num { font-family: var(--mono); font-size: 22px; letter-spacing: -.04em; }
+    .order .when { color: var(--faint); font-size: 12px; font-family: var(--mono); }
+    .lines { color: var(--ink); }
+    .lines span { color: var(--muted); }
+    .empty { text-align: center; padding: 42px 16px; }
+    .empty h3 { font-size: 20px; letter-spacing: -.02em; }
+    .empty p { color: var(--muted); margin-top: 6px; }
+    .rows { display: flex; flex-direction: column; gap: 8px; }
+    .form-row { display: grid; grid-template-columns: minmax(0, 1.4fr) 90px minmax(0, 1fr); gap: 8px; }
+    .form-row.two { grid-template-columns: minmax(0, 1.4fr) 90px; }
+    .offer { padding: 14px 14px 14px 16px; border-left: 3px solid var(--terra); }
+    .offer .prio { font-family: var(--mono); color: var(--terra-2); }
+    .reason { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .toast {
+      position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+      max-width: min(520px, calc(100% - 24px));
+      background: #2a211b; border: 1px solid var(--line); color: var(--ink);
+      padding: 12px 16px; border-radius: 12px; z-index: 20;
+      box-shadow: 0 12px 40px rgba(0,0,0,.35);
+    }
+    .toast.bad { border-color: #8a463c; }
+    .toast.ok { border-color: #5d7344; }
+    @media (max-width: 860px) {
+      .login { grid-template-columns: 1fr; }
+      .brand { border-right: 0; border-bottom: 1px solid var(--line); padding: 28px 20px 18px; min-height: auto; }
+      .brand h1 { font-size: 46px; }
+      .app { grid-template-columns: 1fr; }
+      aside { position: sticky; top: 0; height: auto; z-index: 5; backdrop-filter: blur(10px); }
+      nav { flex-direction: row; overflow-x: auto; }
+      .nav-btn { white-space: nowrap; }
+      .side-foot { display: none; }
+      .stats, .grid-2 { grid-template-columns: 1fr 1fr; }
+      .order { grid-template-columns: 1fr; }
+      .form-row, .form-row.two { grid-template-columns: 1fr; }
+      .main { padding: 16px 14px 48px; }
+    }
+    @media (max-width: 560px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <section id="login" class="login">
+    <div class="brand">
+      <div>
+        <div class="mark" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+            <path d="M8 5h3v22H8z" fill="#f6eee6"/>
+            <path d="M11 6h15l-3.4 6L26 18H11z" fill="#d06a3a"/>
+          </svg>
+        </div>
+        <div class="kicker">Ресторан</div>
+        <h1>Флагман</h1>
+        <div class="rule"></div>
+        <p>Остатки, сроки годности и стоп-лист. Кухня готовит заказы, склад принимает партии и списывает по FEFO.</p>
+      </div>
+      <div class="brand-foot">admin / admin · kitchen / kitchen</div>
+    </div>
+    <div class="gate">
+      <form class="card" id="loginForm">
+        <h2>Вход</h2>
+        <p class="lead">Адрес сервера, логин и пароль. Роль определится сама.</p>
+        <label for="apiBase">Адрес API</label>
+        <input id="apiBase" class="input" autocomplete="url" />
+        <label for="loginUser">Логин</label>
+        <input id="loginUser" class="input" autocomplete="username" value="admin" />
+        <label for="loginPass">Пароль</label>
+        <input id="loginPass" class="input" type="password" autocomplete="current-password" value="admin" />
+        <button class="btn btn-primary" id="loginBtn" type="submit">Войти</button>
+        <div class="chips">
+          <button type="button" class="chip" id="asAdmin">Кладовщик</button>
+          <button type="button" class="chip" id="asKitchen">Кухня</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section id="app" class="app hidden">
+    <aside>
+      <div class="side-brand">
+        <div class="mark" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+            <path d="M8 5h3v22H8z" fill="#f6eee6"/>
+            <path d="M11 6h15l-3.4 6L26 18H11z" fill="#d06a3a"/>
+          </svg>
+        </div>
+        <div>
+          <strong>Флагман</strong>
+          <span id="roleLabel">склад</span>
+        </div>
+      </div>
+      <nav id="nav"></nav>
+      <div class="side-foot">
+        <div class="who" id="who"></div>
+        <button class="btn btn-ghost" id="seedBtn" type="button">Загрузить демо</button>
+        <button class="btn btn-ghost" id="logoutBtn" type="button">Выйти</button>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="top">
+        <div>
+          <h2 id="pageTitle">Склад</h2>
+          <p class="sub" id="pageSub"></p>
+        </div>
+        <div class="live"><span id="liveDot" class="dot"></span><span id="liveText">нет связи</span></div>
+      </header>
+      <div id="stats" class="stats"></div>
+      <div id="view"></div>
+    </div>
+  </section>
+  <div id="toast" class="toast hidden" role="status"></div>
+
+  <script>
+    const $ = (s) => document.querySelector(s);
+    const state = {
+      api: "", user: "", pass: "", me: null, tab: "stocks", live: false,
+      products: [], dishes: [], stocks: [], batches: [], stop: [], forecast: [],
+      hot: [], orders: [], analytics: null
+    };
+
+    const COPY = {
+      stocks: ["Склад", "Партии по сроку. Списание идёт с самой ранней, просрочка не уходит в блюдо."],
+      shipment: ["Поставка", "Номер, дата прихода и партии со сроком годности."],
+      products: ["Продукты", "Справочник: название и единица измерения."],
+      dishes: ["Блюда", "Рецепт на одну порцию. Ингредиенты ссылаются на справочник."],
+      orders: ["Заказы", "Кухня закрывает готовку. Склад может создать заказ — FEFO спишет партии."],
+      stop: ["Стоп-лист", "Блюда, на которые не хватает хотя бы одного ингредиента."],
+      hot: ["Горячие", "Что выгоднее продать, пока срок ещё не вышел."],
+      analytics: ["Аналитика", "Списанная просрочка и продукты, которых мало относительно меню."]
+    };
+
+    function esc(v) {
+      return String(v ?? "").replace(/[&<>"']/g, (c) => {
+        if (c === "&") return "&" + "amp;";
+        if (c === "<") return "&" + "lt;";
+        if (c === ">") return "&" + "gt;";
+        if (c === '"') return "&" + "quot;";
+        return "&" + "#39;";
+      });
+    }
+    function textOf(v) {
+      if (typeof v === "string" && v.trim()) return v.trim();
+      if (typeof v === "number" && Number.isFinite(v)) return String(v);
+      return "";
+    }
+    function guessApi() {
+      try {
+        const saved = sessionStorage.getItem("flagman.api");
+        if (saved) return saved;
+      } catch (e) {}
+      if (location.protocol === "http:" || location.protocol === "https:") {
+        const m = location.pathname.match(/^(\/hds-[a-z0-9]+-\d+-[a-z0-9]+)/i);
+        return location.origin + (m ? m[1] : "");
+      }
+      return "http://localhost:8081";
+    }
+    function toast(msg, ok) {
+      const el = $("#toast");
+      el.textContent = msg || "Ошибка";
+      el.className = "toast " + (ok === false ? "bad" : "ok");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.add("hidden"), 3600);
+    }
+    function apiBase() {
+      return (state.api || $("#apiBase")?.value || guessApi()).replace(/\/$/, "");
+    }
+    async function req(path, opts) {
+      opts = opts || {};
+      const headers = Object.assign({}, opts.headers || {});
+      if (opts.body) headers["Content-Type"] = "application/json";
+      if (state.user) headers.Authorization = "Basic " + btoa(unescape(encodeURIComponent(state.user + ":" + state.pass)));
+      let res;
+      try {
+        res = await fetch(apiBase() + path, { method: opts.method || "GET", headers, body: opts.body });
+      } catch (e) {
+        throw new Error("Нет связи с сервером");
+      }
+      if (!res.ok) {
+        let msg = res.status === 401 ? "Неверный логин или пароль" : res.status === 403 ? "Недостаточно прав" : "Ошибка " + res.status;
+        try {
+          const j = await res.json();
+          if (j && typeof j.error === "string" && j.error) msg = j.error;
+        } catch (e) {}
+        const err = new Error(msg);
+        err.status = res.status;
+        throw err;
+      }
+      if (res.status === 204) return null;
+      const text = await res.text();
+      if (!text) return null;
+      return JSON.parse(text);
+    }
+
+    function isAdmin() { return !!(state.me && state.me.isAdmin); }
+    function tabs() {
+      return isAdmin()
+        ? [["stocks","Склад"],["shipment","Поставки"],["products","Продукты"],["dishes","Блюда"],["orders","Заказы"],["stop","Стоп-лист"],["hot","Горячие"],["analytics","Аналитика"]]
+        : [["orders","Заказы"],["stop","Стоп-лист"],["hot","Горячие"],["stocks","Остатки"]];
+    }
+    function dishIngs(d) { return Array.isArray(d.ingredients) ? d.ingredients : (Array.isArray(d.dishIngredients) ? d.dishIngredients : []); }
+    function ingTitle(i) {
+      return textOf(i.productTitle) || textOf(i.title) || textOf(i.productInfo && i.productInfo.title) || "—";
+    }
+    function batchTitle(b) {
+      return textOf(b.productTitle) || textOf(b.productInfo && b.productInfo.title) || productTitle(b.productInfoId) || "—";
+    }
+    function productTitle(id) {
+      const p = state.products.find((x) => String(x.id) === String(id));
+      return textOf(p && p.title) || "—";
+    }
+    function unitOf(id) {
+      const p = state.products.find((x) => String(x.id) === String(id));
+      return textOf(p && p.unit);
+    }
+    function daysLeft(iso) {
+      const t = new Date(iso).getTime();
+      if (!Number.isFinite(t)) return null;
+      const ms = t - Date.now();
+      if (ms <= 0) return -1;
+      return Math.floor(ms / 86400000);
+    }
+    function when(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "—";
+      return d.toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    }
+    function day(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "—";
+      return d.toLocaleDateString("ru-RU");
+    }
+    function badge(iso) {
+      const d = daysLeft(iso);
+      if (d == null) return '<span class="badge">—</span>';
+      if (d < 0) return '<span class="badge b-bad">просрочен</span>';
+      if (d === 0) return '<span class="badge b-warn">менее суток</span>';
+      if (d <= 3) return '<span class="badge b-warn">' + d + " дн.</span>";
+      return '<span class="badge b-ok">' + d + " дн.</span>";
+    }
+    function statusBadge(s) {
+      if (s === "COMPLETED") return '<span class="badge b-ok">готово</span>';
+      if (s === "REJECTED") return '<span class="badge b-bad">отклонён</span>';
+      return '<span class="badge b-terra">к готовке</span>';
+    }
+    function empty(title, text) {
+      return '<div class="panel empty"><h3>' + esc(title) + '</h3><p>' + esc(text) + '</p></div>';
+    }
+    function stockQty(id) {
+      const row = state.stocks.find((s) => String(s.productInfoId) === String(id));
+      return row ? Number(row.quantity) || 0 : 0;
+    }
+
+    function showLogin() {
+      $("#login").classList.remove("hidden");
+      $("#app").classList.add("hidden");
+      if (state.es) { state.es.close(); state.es = null; }
+    }
+    function persist() {
+      try {
+        sessionStorage.setItem("flagman.api", state.api);
+        sessionStorage.setItem("flagman.user", state.user);
+        sessionStorage.setItem("flagman.pass", state.pass);
+      } catch (e) {}
+    }
+    function clearPersist() {
+      try { ["flagman.api","flagman.user","flagman.pass"].forEach((k) => sessionStorage.removeItem(k)); } catch (e) {}
+    }
+
+    async function enter(me) {
+      const roles = (me.roles || []).map((r) => String(r).replace(/^ROLE_/, ""));
+      state.me = {
+        username: textOf(me.username) || state.user,
+        roles,
+        isAdmin: roles.includes("ADMIN") || state.user === "admin"
+      };
+      state.tab = state.me.isAdmin ? "stocks" : "orders";
+      $("#login").classList.add("hidden");
+      $("#app").classList.remove("hidden");
+      $("#seedBtn").classList.toggle("hidden", !state.me.isAdmin);
+      $("#roleLabel").textContent = state.me.isAdmin ? "склад" : "кухня";
+      $("#who").textContent = state.me.username + " · " + (state.me.isAdmin ? "ADMIN" : "KITCHEN");
+      connectSse();
+      await refresh(false);
+    }
+
+    async function refresh(silent) {
+      const jobs = [
+        req("/api/products"),
+        req("/api/dishes"),
+        req("/api/stocks"),
+        req("/api/stocks/batches"),
+        req("/api/stoplist"),
+        req("/api/stoplist/forecast"),
+        req("/api/hot-offers"),
+        req(isAdmin() ? "/api/orders" : "/api/orders?status=CREATED")
+      ];
+      if (isAdmin()) jobs.push(req("/api/analytics"));
+      const raw = await Promise.all(jobs);
+      state.products = Array.isArray(raw[0]) ? raw[0] : [];
+      state.dishes = Array.isArray(raw[1]) ? raw[1] : [];
+      state.stocks = Array.isArray(raw[2]) ? raw[2] : [];
+      state.batches = Array.isArray(raw[3]) ? raw[3] : [];
+      state.stop = Array.isArray(raw[4]) ? raw[4] : [];
+      state.forecast = Array.isArray(raw[5]) ? raw[5] : [];
+      state.hot = Array.isArray(raw[6]) ? raw[6] : [];
+      state.orders = Array.isArray(raw[7]) ? raw[7] : [];
+      state.analytics = isAdmin() ? raw[8] : null;
+      render();
+      if (!silent) toast("Данные обновлены", true);
+    }
+
+    function connectSse() {
+      if (state.es) state.es.close();
+      const es = new EventSource(apiBase() + "/api/events");
+      state.es = es;
+      es.addEventListener("connected", () => setLive(true));
+      es.addEventListener("stock-update", () => { setLive(true); refresh(true).catch((e) => toast(e.message, false)); });
+      es.onerror = () => setLive(false);
+    }
+    function setLive(on) {
+      state.live = on;
+      $("#liveDot").classList.toggle("on", on);
+      $("#liveText").textContent = on ? "эфир" : "нет связи";
+    }
+
+    function render() {
+      const nav = $("#nav");
+      nav.innerHTML = tabs().map(([id, label]) =>
+        '<button type="button" class="nav-btn' + (state.tab === id ? " active" : "") + '" data-tab="' + id + '">' + label + "</button>"
+      ).join("");
+      const copy = COPY[state.tab] || COPY.stocks;
+      const title = state.tab === "orders" && !isAdmin() ? "Заказы к приготовлению" : copy[0];
+      const sub = state.tab === "orders" && !isAdmin() ? "Номер, время, блюда и порции. «Готово» закрывает заказ." : (state.tab === "stocks" && !isAdmin() ? "Только просмотр партий и остатков." : copy[1]);
+      $("#pageTitle").textContent = title;
+      $("#pageSub").textContent = sub;
+      const total = state.stocks.reduce((a, s) => a + (Number(s.quantity) || 0), 0);
+      const expiring = state.batches.filter((b) => { const d = daysLeft(b.expirationDate); return d != null && d >= 0 && d <= 3; }).length;
+      const open = state.orders.filter((o) => o.status === "CREATED").length;
+      $("#stats").innerHTML = [
+        ["Открытые заказы", isAdmin() ? open : state.orders.length, open > 0],
+        ["Стоп-лист", state.stop.length, state.stop.length > 0],
+        ["Остаток", total, false],
+        ["Срок ≤ 3 дн.", expiring, expiring > 0]
+      ].map((s) => '<div class="stat' + (s[2] ? " warn" : "") + '"><span>' + s[0] + "</span><b>" + s[1] + "</b></div>").join("");
+      const view = $("#view");
+      const map = { stocks: renderStocks, shipment: renderShipment, products: renderProducts, dishes: renderDishes, orders: renderOrders, stop: renderStop, hot: renderHot, analytics: renderAnalytics };
+      (map[state.tab] || renderStocks)(view);
+    }
+
+    function renderStocks(view) {
+      const write = isAdmin()
+        ? '<button class="btn btn-danger" type="button" id="writeOffBtn">Списать просрочку</button>'
+        : "";
+      if (!state.batches.length) {
+        view.innerHTML = empty(isAdmin() ? "Склад пуст" : "Партий нет", isAdmin() ? "Загрузите демо или примите поставку." : "На складе сейчас нет партий с остатком.");
+        return;
+      }
+      const rows = state.batches.map((b) => {
+        const hot = daysLeft(b.expirationDate);
+        return "<tr" + (hot != null && hot <= 3 ? ' class="row-hot"' : "") + ">" +
+          "<td>" + esc(batchTitle(b)) + "</td>" +
+          '<td class="mono">' + (Number(b.quantity) || 0) + " " + esc(unitOf(b.productInfoId)) + "</td>" +
+          "<td>" + esc(day(b.expirationDate)) + "</td>" +
+          "<td>" + badge(b.expirationDate) + "</td>" +
+          '<td class="mono">' + (b.shipmentId != null ? "#" + esc(b.shipmentId) : "—") + "</td></tr>";
+      }).join("");
+      view.innerHTML =
+        '<div class="panel"><div class="panel-h"><div><h3>Партии</h3><p class="reason">Сначала уходит партия с ранним сроком. Просроченное в заказ не попадает.</p></div>' + write + "</div>" +
+        '<div class="table-wrap"><table><thead><tr><th>Продукт</th><th>Кол-во</th><th>Срок</th><th>Осталось</th><th>Поставка</th></tr></thead><tbody>' +
+        rows + "</tbody></table></div></div>";
+    }
+
+    function renderShipment(view) {
+      const opts = state.products.map((p) => '<option value="' + esc(p.id) + '">' + esc(textOf(p.title) || "—") + "</option>").join("");
+      view.innerHTML =
+        '<div class="panel" style="max-width:720px"><h3>Новая поставка</h3><p class="reason">Дата прихода не может быть в будущем. Срок партии — только вперёд.</p>' +
+        '<label for="shipNum">Номер</label><input id="shipNum" class="input" placeholder="SHIP-104" />' +
+        '<label for="shipDate">Дата поступления</label><input id="shipDate" class="input" type="datetime-local" />' +
+        '<div class="panel-h" style="margin-top:16px"><h3>Позиции</h3><button class="btn btn-ghost" type="button" id="addShip">Добавить</button></div>' +
+        '<div id="shipRows" class="rows"></div>' +
+        '<button class="btn btn-primary" type="button" id="saveShip">Принять поставку</button></div>';
+      const now = new Date(Date.now() - 60000);
+      const pad = (n) => String(n).padStart(2, "0");
+      $("#shipDate").value = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()) + "T" + pad(now.getHours()) + ":" + pad(now.getMinutes());
+      addShipRow(opts);
+      view._opts = opts;
+    }
+    function addShipRow(opts) {
+      const exp = new Date(Date.now() + 7 * 86400000);
+      const row = document.createElement("div");
+      row.className = "form-row";
+      row.innerHTML = '<select class="input ship-pid">' + (opts || "") + "</select>" +
+        '<input class="input ship-qty" type="number" min="1" value="10" />' +
+        '<input class="input ship-exp" type="date" value="' + exp.toISOString().slice(0, 10) + '" />';
+      $("#shipRows").appendChild(row);
+    }
+
+    function renderProducts(view) {
+      const list = state.products.length
+        ? state.products.map((p) => '<div class="order" style="grid-template-columns:1fr auto"><div><strong>' + esc(textOf(p.title) || "—") + '</strong><div class="when">' + esc(textOf(p.unit) || "—") + '</div></div><div class="mono">' + stockQty(p.id) + "</div></div>").join("")
+        : '<div class="empty"><h3>Справочник пуст</h3><p>Добавьте продукт или загрузите демо.</p></div>';
+      view.innerHTML =
+        '<div class="grid-2"><div class="panel"><h3>Новый продукт</h3>' +
+        '<label for="pTitle">Название</label><input id="pTitle" class="input" placeholder="Курица филе" />' +
+        '<label for="pUnit">Единица</label><input id="pUnit" class="input" value="кг" />' +
+        '<button class="btn btn-primary" type="button" id="saveProduct">Создать</button></div>' +
+        '<div class="panel"><div class="panel-h"><h3>Справочник</h3><span class="badge b-terra">' + state.products.length + "</span></div>" + list + "</div></div>";
+    }
+
+    function renderDishes(view) {
+      const opts = state.products.map((p) => '<option value="' + esc(p.id) + '">' + esc(textOf(p.title) || "—") + "</option>").join("");
+      const cards = state.dishes.length ? state.dishes.map((d) => {
+        const stopped = state.stop.some((s) => String(s.id) === String(d.id));
+        const ings = dishIngs(d).map((i) => esc(ingTitle(i)) + " × " + (Number(i.quantity) || 0)).join(" · ") || "нет рецепта";
+        return '<div class="panel"><div class="panel-h"><h3>' + esc(textOf(d.title) || "—") + "</h3>" +
+          (stopped ? '<span class="badge b-bad">стоп</span>' : '<span class="badge b-ok">можно</span>') +
+          '</div><p class="reason">' + ings + "</p></div>";
+      }).join("") : empty("Блюд нет", "Соберите рецепт слева или загрузите демо.");
+      view.innerHTML =
+        '<div class="grid-2"><div class="panel"><h3>Новое блюдо</h3>' +
+        '<label for="dTitle">Название</label><input id="dTitle" class="input" placeholder="Томатный суп" />' +
+        '<div class="panel-h" style="margin-top:14px"><h3>На порцию</h3><button class="btn btn-ghost" type="button" id="addIng">Ингредиент</button></div>' +
+        '<div id="ingRows" class="rows"></div><button class="btn btn-primary" type="button" id="saveDish">Создать блюдо</button></div>' +
+        '<div class="grid-cards">' + cards + "</div></div>";
+      addIngRow(opts);
+      view._opts = opts;
+    }
+    function addIngRow(opts) {
+      const row = document.createElement("div");
+      row.className = "form-row two";
+      row.innerHTML = '<select class="input ing-pid">' + (opts || "") + '</select><input class="input ing-qty" type="number" min="1" value="1" />';
+      $("#ingRows").appendChild(row);
+    }
+
+    function renderOrders(view) {
+      const list = state.orders.length ? state.orders.map((o) => {
+        const items = Array.isArray(o.items) ? o.items : [];
+        const lines = items.length
+          ? items.map((i) => "<div>" + esc(textOf(i.dishTitle) || "Блюдо") + ' <span>× ' + (Number(i.quantity) || 0) + "</span></div>").join("")
+          : "<div>Без позиций</div>";
+        const done = o.status === "CREATED"
+          ? '<button class="btn btn-ok" type="button" data-complete="' + esc(o.id) + '">Готово</button>'
+          : statusBadge(o.status);
+        return '<article class="order"><div><div class="num">#' + esc(o.id) + '</div><div class="when">' + esc(when(o.createdAt)) + "</div></div>" +
+          '<div class="lines">' + lines + "</div><div>" + done + "</div></article>";
+      }).join("") : empty(isAdmin() ? "Заказов ещё нет" : "Очередь пуста", isAdmin() ? "Создайте заказ — ингредиенты спишутся с ранних партий." : "Новых заказов к приготовлению нет.");
+
+      if (!isAdmin()) {
+        view.innerHTML = '<div class="stack">' + list + "</div>";
+        return;
+      }
+      const opts = state.dishes.map((d) => '<option value="' + esc(d.id) + '">' + esc(textOf(d.title) || "—") + "</option>").join("");
+      view.innerHTML =
+        '<div class="grid-2"><div class="panel"><h3>Новый заказ</h3><p class="reason">Порции списываются по FEFO, просрочка не трогается.</p>' +
+        '<div id="orderRows" class="rows" style="margin-top:12px"></div>' +
+        '<div class="chips"><button class="btn btn-ghost" type="button" id="addOrder">Блюдо</button></div>' +
+        '<button class="btn btn-primary" type="button" id="saveOrder">Оформить</button></div>' +
+        '<div><div class="panel-h"><h3>Лента</h3></div>' + list + "</div></div>";
+      addOrderRow(opts);
+      view._opts = opts;
+    }
+    function addOrderRow(opts) {
+      const row = document.createElement("div");
+      row.className = "form-row two";
+      row.innerHTML = '<select class="input ord-dish">' + (opts || "") + '</select><input class="input ord-qty" type="number" min="1" value="1" />';
+      $("#orderRows").appendChild(row);
+    }
+
+    function renderStop(view) {
+      const list = state.stop.length
+        ? state.stop.map((d) => {
+            const ings = dishIngs(d).map((i) => esc(ingTitle(i)) + " × " + (Number(i.quantity) || 0)).join(" · ");
+            return '<div class="panel offer"><div class="panel-h"><h3>' + esc(textOf(d.title) || textOf(d.dishTitle) || "—") + '</h3><span class="badge b-bad">нельзя</span></div><p class="reason">' + (ings || "нет состава") + "</p></div>";
+          }).join("")
+        : empty("Стоп-лист пуст", "Все блюда можно готовить.");
+      let forecast = "";
+      if (isAdmin()) {
+        forecast = state.forecast.length
+          ? '<div class="panel"><h3>Прогноз</h3><p class="reason">Сколько порций ещё можно снять, пока блюдо не встанет.</p><div class="table-wrap"><table><thead><tr><th>Блюдо</th><th>Порций</th><th>Держит</th></tr></thead><tbody>' +
+            state.forecast.map((f) => "<tr><td>" + esc(textOf(f.dishTitle) || "—") + '</td><td class="mono">' + (Number(f.ordersLeft) || 0) + "</td><td>" + esc(textOf(f.limitingProduct) || "—") + " · " + (Number(f.limitingStock) || 0) + " / " + (Number(f.qtyPerOrder) || 0) + "</td></tr>").join("") +
+            "</tbody></table></div></div>"
+          : empty("Прогноз пуст", "Либо всё уже в стопе, либо меню пустое.");
+      }
+      view.innerHTML = '<div class="grid-2"><div class="stack">' + list + "</div><div>" + (forecast || "") + "</div></div>";
+    }
+
+    function renderHot(view) {
+      if (!state.hot.length) {
+        view.innerHTML = empty("Пока тихо", "Нет блюд, которые стоит продвигать из-за срока.");
+        return;
+      }
+      view.innerHTML = '<div class="grid-cards">' + state.hot.map((o, i) =>
+        '<article class="panel offer"><div class="panel-h"><h3>' + esc(textOf(o.dishTitle) || "—") + '</h3><span class="prio">' + (Number(o.priority) || 0).toFixed(2) + "</span></div>" +
+        '<div class="when">#' + (i + 1) + '</div><p class="reason">' + esc(textOf(o.reason) || "") + "</p></article>"
+      ).join("") + "</div>";
+    }
+
+    function renderAnalytics(view) {
+      const a = state.analytics || {};
+      const scarce = Array.isArray(a.scarceProducts) ? a.scarceProducts : [];
+      view.innerHTML =
+        '<div class="grid-2"><div class="panel"><span class="muted">Списано по просрочке</span><b class="mono" style="display:block;font-size:42px;margin-top:8px">' + (Number(a.totalWrittenOff) || 0) + '</b><p class="reason">Сумма единиц, снятых со склада как просрочка.</p></div>' +
+        '<div class="panel"><h3>Дефицит</h3>' +
+        (scarce.length ? scarce.map((s) => '<div class="order" style="grid-template-columns:1fr auto"><div>' + esc(textOf(s.title) || productTitle(s.productInfoId)) + '</div><div class="when">ост. ' + (Number(s.stock) || 0) + " · блюд " + (Number(s.usedInDishes) || 0) + "</div></div>").join("") : '<div class="empty"><h3>Дефицита нет</h3><p>Остатки выглядят спокойно относительно меню.</p></div>') +
+        "</div></div>";
+    }
+
+    async function safe(fn) {
+      try { await fn(); } catch (e) { toast(e.message || "Ошибка", false); }
+    }
+
+    $("#loginForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      safe(async () => {
+        state.api = $("#apiBase").value.trim().replace(/\/$/, "");
+        state.user = $("#loginUser").value.trim();
+        state.pass = $("#loginPass").value;
+        if (!state.api || !state.user) throw new Error("Укажите адрес и логин");
+        $("#loginBtn").disabled = true;
+        try {
+          const me = await req("/api/me");
+          persist();
+          await enter(me);
+        } finally { $("#loginBtn").disabled = false; }
+      });
+    });
+    $("#asAdmin").onclick = () => { $("#loginUser").value = "admin"; $("#loginPass").value = "admin"; };
+    $("#asKitchen").onclick = () => { $("#loginUser").value = "kitchen"; $("#loginPass").value = "kitchen"; };
+    $("#logoutBtn").onclick = () => { clearPersist(); state.user = ""; state.me = null; showLogin(); };
+    $("#seedBtn").onclick = () => safe(async () => {
+      const r = await req("/api/demo/seed", { method: "POST" });
+      const msg = r && r.message === "already seeded" ? "Демо уже загружено" : "Демо-данные на складе";
+      toast(msg, true);
+      await refresh(true);
+    });
+    $("#nav").onclick = (e) => {
+      const btn = e.target.closest("[data-tab]");
+      if (!btn) return;
+      state.tab = btn.dataset.tab;
+      render();
+    };
+    $("#view").onclick = (e) => {
+      const t = e.target;
+      if (t.id === "addShip") addShipRow($("#view")._opts || "");
+      if (t.id === "addIng") addIngRow($("#view")._opts || "");
+      if (t.id === "addOrder") addOrderRow($("#view")._opts || "");
+      if (t.id === "writeOffBtn") safe(async () => {
+        const r = await req("/api/stocks/write-off-expired", { method: "POST" });
+        toast("Списано: " + (r && r.writtenOff != null ? r.writtenOff : 0), true);
+        await refresh(true);
+      });
+      if (t.id === "saveProduct") safe(async () => {
+        const title = $("#pTitle").value.trim();
+        const unit = $("#pUnit").value.trim();
+        if (!title || !unit) throw new Error("Укажите название и единицу");
+        await req("/api/products", { method: "POST", body: JSON.stringify([{ title, unit }]) });
+        toast("Продукт создан", true);
+        await refresh(true);
+      });
+      if (t.id === "saveDish") safe(async () => {
+        const title = $("#dTitle").value.trim();
+        if (!title) throw new Error("Укажите название блюда");
+        const ingredient = [...document.querySelectorAll("#ingRows > div")].map((row) => ({
+          idProduct: Number(row.querySelector(".ing-pid").value),
+          quantity: Number(row.querySelector(".ing-qty").value)
+        }));
+        await req("/api/dishes", { method: "POST", body: JSON.stringify({ title, ingredient }) });
+        toast("Блюдо создано", true);
+        await refresh(true);
+      });
+      if (t.id === "saveShip") safe(async () => {
+        const products = [...document.querySelectorAll("#shipRows > div")].map((row) => ({
+          productId: Number(row.querySelector(".ship-pid").value),
+          quantity: Number(row.querySelector(".ship-qty").value),
+          expirationDate: new Date(row.querySelector(".ship-exp").value + "T23:59:59").toISOString()
+        }));
+        await req("/api/shipment", {
+          method: "POST",
+          body: JSON.stringify({
+            shipmentNumber: $("#shipNum").value.trim() || ("SHIP-" + Date.now()),
+            dateShipment: new Date(new Date($("#shipDate").value).getTime() - 1000).toISOString(),
+            products
+          })
+        });
+        toast("Поставка принята", true);
+        state.tab = "stocks";
+        await refresh(true);
+      });
+      if (t.id === "saveOrder") safe(async () => {
+        const dtos = [...document.querySelectorAll("#orderRows > div")].map((row) => ({
+          dishId: Number(row.querySelector(".ord-dish").value),
+          quantity: Number(row.querySelector(".ord-qty").value)
+        }));
+        const order = await req("/api/orders", { method: "POST", body: JSON.stringify({ dtos }) });
+        toast("Заказ #" + (order && order.id != null ? order.id : "") + " создан", true);
+        await refresh(true);
+      });
+      const complete = t.closest("[data-complete]");
+      if (complete) safe(async () => {
+        await req("/api/orders/" + complete.dataset.complete + "/complete", { method: "PATCH" });
+        toast("Заказ закрыт", true);
+        await refresh(true);
+      });
+    };
+
+    $("#apiBase").value = guessApi();
+    (async function boot() {
+      try {
+        const api = sessionStorage.getItem("flagman.api");
+        const user = sessionStorage.getItem("flagman.user");
+        const pass = sessionStorage.getItem("flagman.pass");
+        if (api && user && pass) {
+          state.api = api; state.user = user; state.pass = pass;
+          $("#apiBase").value = api;
+          const me = await req("/api/me");
+          await enter(me);
+          return;
+        }
+      } catch (e) { clearPersist(); }
+      showLogin();
+    })();
+  </script>
+</body>
+</html>

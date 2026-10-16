@@ -20,6 +20,10 @@ public class Dish {
     @Column(name = "title")
     private String title;
 
+    /** URL or data:image/... base64 from admin upload */
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
+
     @OneToMany(mappedBy = "dish", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DishIngredient> dishIngredients = new ArrayList<>();
 

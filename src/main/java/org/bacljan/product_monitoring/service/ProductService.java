@@ -4,10 +4,12 @@ import lombok.AllArgsConstructor;
 import org.bacljan.product_monitoring.DTO.AnalyticsDto;
 import org.bacljan.product_monitoring.DTO.HotOfferDto;
 import org.bacljan.product_monitoring.DTO.StockItemDto;
+import org.bacljan.product_monitoring.DTO.StopListForecastDto;
 import org.bacljan.product_monitoring.model.*;
 import org.bacljan.product_monitoring.repository.DishRepository;
 import org.bacljan.product_monitoring.repository.ProductRepository;
 import org.bacljan.product_monitoring.repository.WriteOffRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,20 +24,28 @@ public class ProductService {
     private final ProductRepository repository;
     private final DishRepository dishRepository;
     private final WriteOffRepository writeOffRepository;
+    private final StockEventService stockEventService;
+    private final AppCacheService appCacheService;
 
+    @Cacheable("stocks")
     public Map<Long, Integer> getStocks() {
-        return repository.findByQuantityGreaterThanOrderByExpirationDateAsc(0)
+        Instant now = Instant.now();
+        return repository.findActiveBatches()
                 .stream()
+                .filter(p -> p.getExpirationDate().isAfter(now))
                 .collect(Collectors.groupingBy(
                         p -> p.getProductInfo().getId(),
                         Collectors.summingInt(Product::getQuantity)
                 ));
     }
 
+    @Cacheable(value = "stocks", key = "'items'")
     public List<StockItemDto> getStockItems() {
+        Instant now = Instant.now();
         Map<Long, Integer> quantities = new HashMap<>();
         Map<Long, String> titles = new HashMap<>();
-        for (Product p : repository.findByQuantityGreaterThanOrderByExpirationDateAsc(0)) {
+        for (Product p : repository.findActiveBatches()) {
+            if (!p.getExpirationDate().isAfter(now)) continue;
             Long id = p.getProductInfo().getId();
             quantities.merge(id, p.getQuantity(), Integer::sum);
             titles.putIfAbsent(id, p.getProductInfo().getTitle());
@@ -47,18 +57,21 @@ public class ProductService {
         return result;
     }
 
+    @Cacheable("batches")
     public List<Product> getAllBatches() {
-        return repository.findByQuantityGreaterThanOrderByExpirationDateAsc(0);
+        return repository.findActiveBatches();
     }
 
+    @Cacheable(value = "batchesByProduct", key = "#productId")
     public List<Product> getBatchesByProductId(Long productId) {
-        return repository.findByProductInfoIdAndQuantityGreaterThanOrderByExpirationDateAsc(productId, 0);
+        return repository.findActiveBatchesByProductInfoId(productId);
     }
 
+    @Transactional(readOnly = true)
+    @Cacheable("stoplist")
     public List<Dish> getStopList() {
         Map<Long, Integer> stocks = getStocks();
         List<Dish> stopList = new ArrayList<>();
-        Instant now = Instant.now();
 
         for (Dish dish : dishRepository.findAll()) {
             boolean canCook = true;
@@ -73,14 +86,6 @@ public class ProductService {
                         canCook = false;
                         break;
                     }
-                    List<Product> batches = repository
-                            .findByProductInfoIdAndQuantityGreaterThanOrderByExpirationDateAsc(productInfoId, 0);
-                    boolean hasValid = batches.stream()
-                            .anyMatch(b -> b.getExpirationDate().isAfter(now));
-                    if (!hasValid) {
-                        canCook = false;
-                        break;
-                    }
                 }
             }
             if (!canCook) {
@@ -90,10 +95,11 @@ public class ProductService {
         return stopList;
     }
 
+    @Cacheable(value = "expiring", key = "#days")
     public List<Product> getExpiringBatches(int days) {
         Instant now = Instant.now();
         Instant threshold = now.plus(days, ChronoUnit.DAYS);
-        return repository.findByQuantityGreaterThanOrderByExpirationDateAsc(0)
+        return repository.findActiveBatches()
                 .stream()
                 .filter(p -> !p.getExpirationDate().isAfter(threshold) && p.getExpirationDate().isAfter(now))
                 .toList();
@@ -102,7 +108,7 @@ public class ProductService {
     @Transactional
     public int writeOffExpired() {
         Instant now = Instant.now();
-        List<Product> all = repository.findByQuantityGreaterThanOrderByExpirationDateAsc(0);
+        List<Product> all = repository.findActiveBatches();
         int total = 0;
         for (Product batch : all) {
             if (!batch.getExpirationDate().isAfter(now)) {
@@ -114,20 +120,24 @@ public class ProductService {
                     writeOff.setProduct(batch);
                     writeOff.setProductInfo(batch.getProductInfo());
                     writeOffRepository.save(writeOff);
-
                     batch.setQuantity(0);
                     total += qty;
                 }
             }
         }
+        if (total > 0) {
+            stockEventService.publish("WRITE_OFF");
+        }
+        appCacheService.evictStockViews();
         return total;
     }
 
+    @Transactional(readOnly = true)
+    @Cacheable("hotOffers")
     public List<HotOfferDto> getHotOffers() {
         Map<Long, Integer> stocks = getStocks();
         Instant now = Instant.now();
-        List<Dish> stopList = getStopList();
-        Set<Long> stopIds = stopList.stream().map(Dish::getId).collect(Collectors.toSet());
+        Set<Long> stopIds = getStopList().stream().map(Dish::getId).collect(Collectors.toSet());
 
         List<HotOfferDto> offers = new ArrayList<>();
 
@@ -148,7 +158,10 @@ public class ProductService {
                 if (stock <= 0) continue;
 
                 List<Product> batches = repository
-                        .findByProductInfoIdAndQuantityGreaterThanOrderByExpirationDateAsc(productInfoId, 0);
+                        .findActiveBatchesByProductInfoId(productInfoId)
+                        .stream()
+                        .filter(b -> b.getExpirationDate().isAfter(now))
+                        .toList();
                 if (batches.isEmpty()) continue;
 
                 Product earliest = batches.get(0);
@@ -156,21 +169,23 @@ public class ProductService {
                 if (daysLeft < 0) continue;
 
                 double urgency = 1.0 / (daysLeft + 1);
-                double residual = Math.min(1.0, (double) stock / (ingredient.getQuantity() * 10));
+                double residual = Math.min(1.0, (double) stock / (ingredient.getQuantity() * 10.0));
                 double share = totalRecipeQty == 0 ? 0 : (double) ingredient.getQuantity() / totalRecipeQty;
-
-                double part = urgency * residual * (0.5 + share);
-                score += part;
+                score += urgency * residual * (0.5 + share);
 
                 if (urgency > bestUrgency) {
                     bestUrgency = urgency;
+                    String unit = ingredient.getProductInfo().getUnit() != null
+                            ? ingredient.getProductInfo().getUnit()
+                            : "pcs";
                     bestReason = ingredient.getProductInfo().getTitle()
-                            + " expires in " + daysLeft + " day(s), stock=" + stock;
+                            + " expires in " + daysLeft + " day(s), stock=" + stock + " " + unit;
                 }
             }
 
             if (score > 0 && bestReason != null) {
-                offers.add(new HotOfferDto(dish.getId(), dish.getTitle(), score, bestReason));
+                offers.add(new HotOfferDto(dish.getId(), dish.getTitle(),
+                        Math.round(score * 1000.0) / 1000.0, bestReason));
             }
         }
 
@@ -178,16 +193,66 @@ public class ProductService {
         return offers;
     }
 
+    @Transactional(readOnly = true)
+    @Cacheable("forecast")
+    public List<StopListForecastDto> getStopListForecast() {
+        Map<Long, Integer> stocks = getStocks();
+        Set<Long> stopIds = getStopList().stream().map(Dish::getId).collect(Collectors.toSet());
+        List<StopListForecastDto> result = new ArrayList<>();
+
+        for (Dish dish : dishRepository.findAll()) {
+            if (stopIds.contains(dish.getId())) continue;
+            if (dish.getDishIngredients() == null || dish.getDishIngredients().isEmpty()) continue;
+
+            int minOrders = Integer.MAX_VALUE;
+            String limitingTitle = null;
+            int limitingStock = 0;
+            int limitingNeed = 0;
+
+            for (DishIngredient ingredient : dish.getDishIngredients()) {
+                Long productInfoId = ingredient.getProductInfo().getId();
+                int stock = stocks.getOrDefault(productInfoId, 0);
+                int need = ingredient.getQuantity();
+                if (need <= 0) continue;
+                int canMake = stock / need;
+                if (canMake < minOrders) {
+                    minOrders = canMake;
+                    limitingTitle = ingredient.getProductInfo().getTitle();
+                    limitingStock = stock;
+                    limitingNeed = need;
+                }
+            }
+
+            if (minOrders == Integer.MAX_VALUE) continue;
+            result.add(new StopListForecastDto(
+                    dish.getId(),
+                    dish.getTitle(),
+                    minOrders,
+                    limitingTitle,
+                    limitingStock,
+                    limitingNeed
+            ));
+        }
+
+        result.sort(Comparator.comparing(StopListForecastDto::getOrdersLeft));
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    @Cacheable("analytics")
     public AnalyticsDto getAnalytics() {
         Long total = writeOffRepository.sumAllQuantity();
         if (total == null) total = 0L;
 
         Map<Long, Integer> stocks = getStocks();
         Map<Long, Integer> usage = new HashMap<>();
+        Map<Long, String> titles = new HashMap<>();
         for (Dish dish : dishRepository.findAll()) {
             if (dish.getDishIngredients() == null) continue;
             for (DishIngredient ing : dish.getDishIngredients()) {
-                usage.merge(ing.getProductInfo().getId(), 1, Integer::sum);
+                Long id = ing.getProductInfo().getId();
+                usage.merge(id, 1, Integer::sum);
+                titles.putIfAbsent(id, ing.getProductInfo().getTitle());
             }
         }
 
@@ -199,13 +264,13 @@ public class ProductService {
             if (stock < 20 || (dishes > 0 && stock < dishes * 5)) {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("productInfoId", id);
+                row.put("title", titles.get(id));
                 row.put("stock", stock);
                 row.put("usedInDishes", dishes);
                 scarce.add(row);
             }
         }
         scarce.sort((a, b) -> Integer.compare((int) b.get("usedInDishes"), (int) a.get("usedInDishes")));
-
         return new AnalyticsDto(total, scarce);
     }
 }

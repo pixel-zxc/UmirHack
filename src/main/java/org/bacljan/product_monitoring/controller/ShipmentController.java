@@ -47,6 +47,11 @@ public class ShipmentController {
         return ResponseEntity.ok(DtoMapper.toDishDtoList(productService.getStopList()));
     }
 
+    @GetMapping("/stoplist/forecast")
+    public ResponseEntity<List<StopListForecastDto>> getStopListForecast() {
+        return ResponseEntity.ok(productService.getStopListForecast());
+    }
+
     @GetMapping("/stocks/expiring")
     public ResponseEntity<List<ProductBatchResponseDto>> getExpiring(@RequestParam(defaultValue = "3") int days) {
         return ResponseEntity.ok(DtoMapper.toProductBatchDtoList(productService.getExpiringBatches(days)));

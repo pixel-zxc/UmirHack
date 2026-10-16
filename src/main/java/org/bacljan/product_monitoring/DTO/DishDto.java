@@ -11,6 +11,8 @@ import java.util.List;
 public class DishDto {
     @NotBlank
     String title;
+    /** optional: http(s) URL or data:image base64 */
+    String imageUrl;
     @NotNull
     @Size(min = 1)
     List<DishIngredientDto> ingredient;

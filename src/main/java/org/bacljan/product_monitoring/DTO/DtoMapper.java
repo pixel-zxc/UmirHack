@@ -34,7 +34,7 @@ public final class DtoMapper {
         List<DishIngredientResponseDto> ingredients = entity.getDishIngredients() == null
                 ? Collections.emptyList()
                 : entity.getDishIngredients().stream().map(DtoMapper::toDto).collect(Collectors.toList());
-        return new DishResponseDto(entity.getId(), entity.getTitle(), ingredients);
+        return new DishResponseDto(entity.getId(), entity.getTitle(), entity.getImageUrl(), ingredients);
     }
 
     public static List<DishResponseDto> toDishDtoList(List<Dish> list) {

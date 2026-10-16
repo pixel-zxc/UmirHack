@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class ShipmentService {
     private final ShipmentRepository shipmentRepository;
     private final ProductInfoService productInfoService;
+    private final StockEventService stockEventService;
+    private final AppCacheService appCacheService;
 
     @Transactional
     public Shipment add(ShipmentDto dto) {
@@ -38,6 +40,9 @@ public class ShipmentService {
             shipment.addProduct(product);
         }
 
-        return shipmentRepository.save(shipment);
+        Shipment saved = shipmentRepository.save(shipment);
+        appCacheService.evictStockViews();
+        stockEventService.publish("SHIPMENT_ADDED");
+        return saved;
     }
 }
